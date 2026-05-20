@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/Users/leesangjae/Desktop/MyMudGame/build",
+  "command": "/usr/bin/c++  -I/Users/leesangjae/Desktop/MyMudGame/header -I/Users/leesangjae/Desktop/MyMudGame/external/bearlibterminal/include -I/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-src/include -g -std=c++17 -arch arm64 -o CMakeFiles/MyMudGame.dir/source/Item.cpp.o -c /Users/leesangjae/Desktop/MyMudGame/source/Item.cpp",
+  "file": "/Users/leesangjae/Desktop/MyMudGame/source/Item.cpp",
+  "output": "CMakeFiles/MyMudGame.dir/source/Item.cpp.o"
+},
+{
+  "directory": "/Users/leesangjae/Desktop/MyMudGame/build",
+  "command": "/usr/bin/c++  -I/Users/leesangjae/Desktop/MyMudGame/header -I/Users/leesangjae/Desktop/MyMudGame/external/bearlibterminal/include -I/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-src/include -g -std=c++17 -arch arm64 -o CMakeFiles/MyMudGame.dir/source/Mob.cpp.o -c /Users/leesangjae/Desktop/MyMudGame/source/Mob.cpp",
+  "file": "/Users/leesangjae/Desktop/MyMudGame/source/Mob.cpp",
+  "output": "CMakeFiles/MyMudGame.dir/source/Mob.cpp.o"
+},
+{
+  "directory": "/Users/leesangjae/Desktop/MyMudGame/build",
+  "command": "/usr/bin/c++  -I/Users/leesangjae/Desktop/MyMudGame/header -I/Users/leesangjae/Desktop/MyMudGame/external/bearlibterminal/include -I/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-src/include -g -std=c++17 -arch arm64 -o CMakeFiles/MyMudGame.dir/source/Screen.cpp.o -c /Users/leesangjae/Desktop/MyMudGame/source/Screen.cpp",
+  "file": "/Users/leesangjae/Desktop/MyMudGame/source/Screen.cpp",
+  "output": "CMakeFiles/MyMudGame.dir/source/Screen.cpp.o"
+},
+{
+  "directory": "/Users/leesangjae/Desktop/MyMudGame/build",
+  "command": "/usr/bin/c++  -I/Users/leesangjae/Desktop/MyMudGame/header -I/Users/leesangjae/Desktop/MyMudGame/external/bearlibterminal/include -I/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-src/include -g -std=c++17 -arch arm64 -o CMakeFiles/MyMudGame.dir/source/Vector.cpp.o -c /Users/leesangjae/Desktop/MyMudGame/source/Vector.cpp",
+  "file": "/Users/leesangjae/Desktop/MyMudGame/source/Vector.cpp",
+  "output": "CMakeFiles/MyMudGame.dir/source/Vector.cpp.o"
+},
+{
+  "directory": "/Users/leesangjae/Desktop/MyMudGame/build",
+  "command": "/usr/bin/c++  -I/Users/leesangjae/Desktop/MyMudGame/header -I/Users/leesangjae/Desktop/MyMudGame/external/bearlibterminal/include -I/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-src/include -g -std=c++17 -arch arm64 -o CMakeFiles/MyMudGame.dir/source/main.cpp.o -c /Users/leesangjae/Desktop/MyMudGame/source/main.cpp",
+  "file": "/Users/leesangjae/Desktop/MyMudGame/source/main.cpp",
+  "output": "CMakeFiles/MyMudGame.dir/source/main.cpp.o"
+}
+]

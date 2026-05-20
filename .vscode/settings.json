@@ -1,0 +1,20 @@
+{
+    "C_Cpp.default.compilerPath": "/usr/bin/clang++",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.intelliSenseMode": "macos-clang-arm64",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/header",
+        "${workspaceFolder}/source",
+        "${workspaceFolder}/**"
+    ],
+    "C_Cpp.default.compilerArgs": [
+        "-I${workspaceFolder}/header"
+    ],
+    "code-runner.runInTerminal": true,
+    "code-runner.saveFileBeforeRun": true,
+    "code-runner.ignoreSelection": true,
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.executorMap": {
+        "cpp": "cd $workspaceRoot && cmake -S . -B build && cmake --build build && ./build/MyMudGame"
+    }
+}

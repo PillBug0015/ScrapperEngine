@@ -2,17 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C++ Launch (External Terminal)",
+            "name": "Debug MyMudGame",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/MyMudGame",
+            "program": "${workspaceFolder}/build/MyMudGame",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/build",
             "environment": [],
             "externalConsole": true,
             "MIMode": "lldb",
-            "preLaunchTask": "C/C++: clang++ build active file"
+            "preLaunchTask": "CMake: build MyMudGame"
         }
     ]
 }
