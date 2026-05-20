@@ -1,0 +1,43 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "MacOS",
+            "displayName": "MacOS",
+            "binaryDir": "${sourceDir}/build/MacOS",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "Windows",
+            "displayName": "Windows",
+            "binaryDir": "${sourceDir}/build/Windows",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "MacOS",
+            "configurePreset": "MacOS",
+            "configuration": "Debug"
+        },
+        {
+            "name": "Windows",
+            "configurePreset": "Windows",
+            "configuration": "Debug"
+        }
+    ]
+}

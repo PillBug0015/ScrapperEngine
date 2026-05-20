@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "MacOS",
             "includePath": [
                 "${workspaceFolder}/header",
                 "${workspaceFolder}/source",
@@ -9,12 +9,23 @@
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang++",
-            "compilerArgs": [
-                "-I${workspaceFolder}/header"
-            ],
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "macos-clang-arm64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/header",
+                "${workspaceFolder}/source",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
             "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],

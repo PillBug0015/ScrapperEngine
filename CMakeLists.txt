@@ -1,58 +1,38 @@
-cmake_minimum_required(VERSION 3.10)
-
-project(MyMudGame VERSION 1.0 LANGUAGES CXX)
+if(NOT CMAKE_TOOLCHAIN_FILE AND DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+cmake_minimum_required(VERSION 3.15)
+project(MyMudGame VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp"
-)
 
-add_executable(MyMudGame MACOSX_BUNDLE ${SOURCE_FILES})
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "header/*.h" "header/*.hpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
 
-target_include_directories(MyMudGame PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/header"
-)
 
-set(BEARLIBTERMINAL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/external/bearlibterminal")
-set(BEARLIBTERMINAL_INCLUDE_DIR "${BEARLIBTERMINAL_ROOT}/include")
-
-if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
-    set(BEARLIBTERMINAL_LIBRARY_DIR "${BEARLIBTERMINAL_ROOT}/lib/macos-arm64")
-else()
-    message(FATAL_ERROR "BearLibTerminal is currently vendored only for macOS arm64 in this project.")
+if(WIN32)
+    file(GLOB_RECURSE WIN_SOURCES CONFIGURE_DEPENDS "source/windows/*.cpp")
+    list(APPEND SOURCES ${WIN_SOURCES})
+    
+    add_compile_definitions(USING_WINDOWS)
+elseif(APPLE)
+    file(GLOB_RECURSE MAC_SOURCES CONFIGURE_DEPENDS "source/mac/*.cpp")
+    list(APPEND SOURCES ${MAC_SOURCES})
+    
+    add_compile_definitions(USING_MAC)
 endif()
 
-file(GLOB BEARLIBTERMINAL_LIBRARIES CONFIGURE_DEPENDS
-    "${BEARLIBTERMINAL_LIBRARY_DIR}/*.a"
-    "${BEARLIBTERMINAL_LIBRARY_DIR}/*.dylib"
-)
+find_package(fmt CONFIG REQUIRED)
 
-file(GLOB BEARLIBTERMINAL_RUNTIME_LIBRARIES CONFIGURE_DEPENDS
-    "${BEARLIBTERMINAL_LIBRARY_DIR}/*.dylib"
-)
 
-target_include_directories(MyMudGame PRIVATE
-    "${BEARLIBTERMINAL_INCLUDE_DIR}"
-)
-target_link_directories(MyMudGame PRIVATE
-    "${BEARLIBTERMINAL_LIBRARY_DIR}"
-)
-target_link_libraries(MyMudGame PRIVATE
-    ${BEARLIBTERMINAL_LIBRARIES}
-)
-add_custom_command(TARGET MyMudGame POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${BEARLIBTERMINAL_RUNTIME_LIBRARIES}
-        "$<TARGET_FILE_DIR:MyMudGame>"
-)
+add_executable(MyMudGame ${SOURCES} ${HEADERS})
+target_include_directories(MyMudGame PRIVATE header)
 
-include(FetchContent)
-FetchContent_Declare(
-    json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-)
-FetchContent_MakeAvailable(json)
-target_link_libraries(MyMudGame PRIVATE nlohmann_json::nlohmann_json)
+
+if(MSVC)
+    target_compile_options(MyMudGame PRIVATE /W4) 
+else()
+    target_compile_options(MyMudGame PRIVATE -Wall -Wextra -Wpedantic) 
+endif()

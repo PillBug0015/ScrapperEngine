@@ -1,0 +1,41 @@
+# Build output
+build/
+out/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+
+# vcpkg generated files
+vcpkg_installed/
+
+# Editor and local IDE settings
+.vscode/*
+!.vscode/extensions.json
+.vs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug symbols and binaries
+*.dSYM/
+*.exe
+*.dll
+*.dylib
+*.so
+*.a
+*.lib
+*.pdb
+*.ilk
+*.obj
+*.o
+
+# Local scratch files
+tempCodeRunnerFile.cpp
+.vscode/tasks.json
+.vscode/settings.json
+.vscode/launch.json
