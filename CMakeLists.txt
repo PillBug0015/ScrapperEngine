@@ -15,6 +15,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
 # 2. find lib
 find_package(fmt CONFIG REQUIRED)
 find_package(ftxui CONFIG REQUIRED) 
+find_package(nlohmann_json CONFIG REQUIRED)
+
 
 add_executable(MyMudGame ${SOURCES} ${HEADERS})
 
@@ -31,6 +33,7 @@ target_link_libraries(MyMudGame PRIVATE
     ftxui::screen
     ftxui::dom
     ftxui::component
+    nlohmann_json::nlohmann_json
 )
 
 if(MSVC)

@@ -3,5 +3,6 @@
     "-DCMAKE_TOOLCHAIN_FILE=C:/Users/Lee/vcpkg/scripts/buildsystems/vcpkg.cmake"
   ],
   "cmake.buildDirectory": "${workspaceFolder}/build/${variant:buildType}",
-  "cmake.configureOnOpen": true
+  "cmake.configureOnOpen": true,
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }
