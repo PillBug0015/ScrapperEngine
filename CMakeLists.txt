@@ -8,27 +8,29 @@ project(MyMudGame VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
+# 1. file search
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "header/*.h" "header/*.hpp")
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
-    
+
+# 2. find lib
+find_package(fmt CONFIG REQUIRED)
+find_package(ftxui CONFIG REQUIRED) 
+
+add_executable(MyMudGame ${SOURCES} ${HEADERS})
+
+target_include_directories(MyMudGame PRIVATE header)
+
 if(WIN32)
     target_compile_definitions(MyMudGame PRIVATE USING_WINDOWS)
 elseif(APPLE)
     target_compile_definitions(MyMudGame PRIVATE USING_MAC)
 endif()
 
-add_executable(MyMudGame ${SOURCES} ${HEADERS})
-target_include_directories(MyMudGame PRIVATE header)
-
-
-# 라이브러리 추가
-find_package(fmt CONFIG REQUIRED)
-find_package(bearlibterminal CONFIG REQUIRED) 
-
 target_link_libraries(MyMudGame PRIVATE 
     fmt::fmt
-    bearlibterminal::bearlibterminal
+    ftxui::screen
+    ftxui::dom
+    ftxui::component
 )
 
 if(MSVC)

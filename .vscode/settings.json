@@ -2,6 +2,6 @@
   "cmake.configureArgs": [
     "-DCMAKE_TOOLCHAIN_FILE=C:/Users/Lee/vcpkg/scripts/buildsystems/vcpkg.cmake"
   ],
-  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.buildDirectory": "${workspaceFolder}/build/${variant:buildType}",
   "cmake.configureOnOpen": true
 }

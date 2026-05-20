@@ -1,11 +1,25 @@
 #include <iostream>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
+#include <fmt/core.hpp>
 
-void InitializeConsole() {
-#ifdef USING_WINDOWS
-    // 윈도우 전용 콘솔 설정 코드
-    std::cout << "윈도우 환경에서 MUD 게임을 시작합니다." << std::endl;
-#elif defined(USING_MAC)
-    // 맥 전용 터미널 설정 코드
-    std::cout << "맥 환경에서 MUD 게임을 시작합니다." << std::endl;
-#endif
+int main() {
+    using namespace ftxui;
+
+    // 1. FTXUI로 멋진 UI 요소 그리기
+    Element document = vbox({
+        text(fmt::format("=== {} ===", "전설의 MUD 게임")) | bold | color(Color::Green) | hcenter,
+        hbox({
+            text(" [1] 게임 시작 ") | border,
+            text(" [2] 이어 하기 ") | border,
+            text(" [3] 게임 종료 ") | border,
+        }) | hcenter,
+    }) | border;
+
+    // 2. 화면 크기 지정 및 렌더링
+    auto screen = Screen::Create(Dimension::Full(), Dimension::Fit(document));
+    Render(screen, document);
+    screen.Print();
+
+    return 0;
 }
