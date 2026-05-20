@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Users/leesangjae/Desktop/MyMudGame/build/cmake_install.cmake",
-		"/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

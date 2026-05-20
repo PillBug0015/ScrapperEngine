@@ -1,5 +1,0 @@
-/Users/leesangjae/Desktop/MyMudGame/build/CMakeFiles/MyMudGame.dir
-/Users/leesangjae/Desktop/MyMudGame/build/CMakeFiles/edit_cache.dir
-/Users/leesangjae/Desktop/MyMudGame/build/CMakeFiles/rebuild_cache.dir
-/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-build/CMakeFiles/edit_cache.dir
-/Users/leesangjae/Desktop/MyMudGame/build/_deps/json-build/CMakeFiles/rebuild_cache.dir

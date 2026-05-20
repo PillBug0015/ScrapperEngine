@@ -1,7 +1,6 @@
 #include "Screen.h"
 #include "Vector.h"
 #include <iostream>
-#include "BearLibTerminal.h"
 
 Screen::Screen()
 {
