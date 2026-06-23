@@ -1,21 +1,29 @@
 # Build output
-build/
-out/
+/build/
+/out/
 
 # CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-Makefile
+/CMakeFiles/
+/CMakeCache.txt
+/CMakeUserPresets.json
+/cmake_install.cmake
+/compile_commands.json
+/Makefile
 
 # vcpkg generated files
-vcpkg_installed/
+/vcpkg_installed/
 
-# Editor and local IDE settings
+# Editor and local IDE files
+# Share only the portable, cross-platform configs.
+# c_cpp_properties.json / launch.json stay local (they are OS-specific).
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
 
 # OS files
 .DS_Store
@@ -36,6 +44,3 @@ Thumbs.db
 
 # Local scratch files
 tempCodeRunnerFile.cpp
-.vscode/tasks.json
-.vscode/settings.json
-.vscode/launch.json

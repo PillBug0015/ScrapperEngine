@@ -1,8 +1,5 @@
 {
-  "cmake.configureArgs": [
-    "-DCMAKE_TOOLCHAIN_FILE=C:/Users/Lee/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  ],
-  "cmake.buildDirectory": "${workspaceFolder}/build/${variant:buildType}",
+  "cmake.useCMakePresets": "always",
   "cmake.configureOnOpen": true,
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }

@@ -1,9 +1,10 @@
 {
   "name": "my-mud-game",
-  "version-string": "1.0.0",
+  "version-string": "0.0.1",
   "dependencies": [
     "fmt",
-    "ftxui",
+    "raylib",
+    "glfw3",
     "nlohmann-json"
   ]
 }
