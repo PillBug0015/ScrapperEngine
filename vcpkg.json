@@ -1,10 +1,14 @@
 {
   "name": "my-mud-game",
   "version-string": "0.0.1",
+  "builtin-baseline": "a0b1c8d3a477c1cb4813d8e127a56961707ca42b",
   "dependencies": [
     "fmt",
     "raylib",
     "glfw3",
     "nlohmann-json"
+  ],
+  "overrides": [
+    { "name": "raylib", "version": "5.5" }
   ]
 }
