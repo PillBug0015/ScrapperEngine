@@ -1,5 +1,7 @@
 {
   "cmake.useCMakePresets": "always",
   "cmake.configureOnOpen": true,
+  // F5(또는 디버그 실행) 시 CMake Tools가 활성 타깃을 먼저 빌드하도록 함.
+  "cmake.buildBeforeRun": true,
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }

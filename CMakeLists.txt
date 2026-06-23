@@ -24,22 +24,14 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
 
 # 2. load package
 find_package(raylib CONFIG REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED) 
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 # 3. executable
-# 개발 중엔 일반 실행파일로 빌드한다. (.app 번들은 lldb 디버깅 시 창이 안 뜨고 멈추는 문제가 있어 제외)
-# 배포할 때 .app 번들이 필요하면 아래를 add_executable에 MACOSX_BUNDLE 추가 + set_target_properties로 부활시키면 된다:
-#   add_executable(MyMudGame MACOSX_BUNDLE ${SOURCES} ${HEADERS})
-#   set_target_properties(MyMudGame PROPERTIES
-#       MACOSX_BUNDLE_BUNDLE_NAME "MyMudGame"
-#       MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-#       MACOSX_BUNDLE_GUI_IDENTIFIER "com.local.MyMudGame"
-#       MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
 add_executable(MyMudGame ${SOURCES} ${HEADERS})
 
-target_include_directories(MyMudGame PRIVATE header)
+target_include_directories(MyMudGame PRIVATE header ${HEADER_DIRS})
 
 # 4. cross platform
 if(WIN32)
