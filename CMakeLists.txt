@@ -19,8 +19,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. find source
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "header/*.h" "header/*.hpp")
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "source/*.cpp")
+file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS "engine/headers/*.h" "engine/headers/*.hpp")
+file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS "engine/source/*.cpp")
+
+file(GLOB_RECURSE ASSET_HEADERS CONFIGURE_DEPENDS "Assets/header/*.h" "Assets/header/*.hpp")
+file(GLOB_RECURSE ASSET_SOURCES CONFIGURE_DEPENDS "Assets/source/*.cpp")
+
 
 # 2. load package
 find_package(raylib CONFIG REQUIRED)
@@ -29,9 +33,13 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 # 3. executable
-add_executable(MyMudGame ${SOURCES} ${HEADERS})
+add_executable(MyMudGame ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${ASSET_SOURCES} ${ASSET_HEADERS})
 
-target_include_directories(MyMudGame PRIVATE header ${HEADER_DIRS})
+target_include_directories(MyMudGame PRIVATE
+    engine/headers
+    Assets/header
+    ${HEADER_DIRS}
+)
 
 # 4. cross platform
 if(WIN32)
