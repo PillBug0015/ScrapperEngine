@@ -2,6 +2,8 @@
 
 #include "Renderer.h"
 
+
+namespace ScrapperEngine {
 class SpriteRenderer : public Renderer {
 public:
     Texture2D texture = {};
@@ -47,3 +49,5 @@ protected:
         RenderSystem::Instance().Submit(cmd);
     }
 };
+
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+
+namespace ScrapperEngine {
 class GameObject;
 
 class Component {
@@ -83,3 +85,5 @@ private:
         }
     }
 };
+
+}

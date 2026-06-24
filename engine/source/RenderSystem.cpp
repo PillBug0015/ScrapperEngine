@@ -3,6 +3,8 @@
 #include "Renderer.h"
 #include <algorithm>
 
+
+namespace ScrapperEngine {
 void RenderSystem::RegisterRenderer(Renderer* r) {
     if (r == nullptr || r->owner == nullptr) {
         return;
@@ -165,4 +167,6 @@ void RenderSystem::ExecuteCommands(const std::vector<RenderCommand>& cmds) {
             }
         }
     }
+}
+
 }

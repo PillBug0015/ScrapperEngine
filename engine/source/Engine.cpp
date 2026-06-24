@@ -3,8 +3,11 @@
 #include <algorithm>
 #include <raylib.h>
 
-Engine::Engine(int width, int height, const std::string& title)
-    : windowWidth(width), windowHeight(height), windowTitle(title), running(false) {}
+
+namespace ScrapperEngine {
+Engine::Engine(int width, int height, const std::string& title, int targetWidth, int targetHeight)
+    : windowWidth(width), windowHeight(height), windowTitle(title), running(false),
+      targetWidth(targetWidth), targetHeight(targetHeight), targetTexture{} {}
 
 Engine::~Engine() {
     Shutdown();
@@ -14,10 +17,25 @@ bool Engine::Initialize() {
     InitWindow(windowWidth, windowHeight, windowTitle.c_str());
     SetTargetFPS(60);
     running = IsWindowReady();
+
+    if (running) {
+        targetTexture = LoadRenderTexture(targetWidth, targetHeight);
+    }
+
     return running;
 }
 
 void Engine::Shutdown() {
+    // 1. First, clear all game objects while the OpenGL context is still alive
+    ClearGameObjects();
+
+    // 2. Unload the render texture before closing the window
+    if (targetTexture.id != 0) {
+        UnloadRenderTexture(targetTexture);
+        targetTexture = {};
+    }
+
+    // 3. Finally, close the window and destroy the OpenGL context
     if (IsWindowReady()) {
         CloseWindow();
     }
@@ -31,10 +49,35 @@ void Engine::Run() {
         float deltaTime = GetFrameTime();
         Update(deltaTime);
 
-        BeginDrawing();
-        ClearBackground(BLACK); // Black background as default for JRPG/Text RPG
-
+        // 1. Draw the game onto the virtual texture at Target Resolution (1080p)
+        BeginTextureMode(targetTexture);
+        ClearBackground(BLACK);
         Draw();
+        EndTextureMode();
+
+        // 2. Draw the virtual texture to the actual window, scaling with aspect-ratio preservation (Letterboxing)
+        BeginDrawing();
+        ClearBackground(BLACK); // Clear letterbox areas
+
+        // Calculate scale factor to fit the actual window size
+        float scale = std::min(
+            static_cast<float>(GetScreenWidth()) / targetWidth,
+            static_cast<float>(GetScreenHeight()) / targetHeight
+        );
+
+        // Calculate centered destination dimensions
+        float destWidth = targetWidth * scale;
+        float destHeight = targetHeight * scale;
+        float destX = (GetScreenWidth() - destWidth) * 0.5f;
+        float destY = (GetScreenHeight() - destHeight) * 0.5f;
+
+        // Source rectangle (y-flipped because OpenGL texture coordinates are y-inverted)
+        Rectangle source = { 0.0f, 0.0f, static_cast<float>(targetTexture.texture.width), -static_cast<float>(targetTexture.texture.height) };
+        Rectangle dest = { destX, destY, destWidth, destHeight };
+        Vector2 origin = { 0.0f, 0.0f };
+
+        // Render the virtual texture to the screen
+        DrawTexturePro(targetTexture.texture, source, dest, origin, 0.0f, WHITE);
 
         EndDrawing();
     }
@@ -87,4 +130,6 @@ void Engine::RemoveDestroyedGameObjects() {
         }),
         gameObjects.end()
     );
+}
+
 }

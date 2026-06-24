@@ -1,21 +1,14 @@
-#include "Camera2DComponent.h"
-#include "Engine.h"
-#include "GameManager.h"
+#include "Scrapper.h"
 
 int main()
 {
-    Engine engine(960, 540, "MyMudGame");
+    ScrapperEngine::Engine engine(960, 540, "MyMudGame - Scrapper Engine", 960, 540);
 
-    if (!engine.Initialize())
+    if (engine.Initialize())
     {
-        return 1;
+        engine.Run();
+        Vector2 position = {960 * 0.5, 540 * 0.5};
+        ScrapperEngine::GameObject* title = engine.InstantiateRect(position);
+        title->AddComponent<ScrapperEngine::TextRenderer>("Bruh");
     }
-
-    GameObject* gameRoot = engine.Instantiate2D();
-    gameRoot->AddComponent<Camera2DComponent>();
-    gameRoot->AddComponent<mud::GameManager>();
-
-    engine.Run();
-
-    return 0;
 }

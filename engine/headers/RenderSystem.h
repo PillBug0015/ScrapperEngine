@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+
+namespace ScrapperEngine {
 enum class RenderType {
     RECTANGLE,
     TEXTURE,
@@ -96,3 +98,5 @@ private:
     void CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>& commands);
     void ExecuteCommands(const std::vector<RenderCommand>& cmds);
 };
+
+}

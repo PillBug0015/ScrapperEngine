@@ -2,6 +2,8 @@
 
 #include "Renderer.h"
 
+
+namespace ScrapperEngine {
 class TextRenderer : public Renderer {
 public:
     std::string text = "";
@@ -29,3 +31,5 @@ protected:
         RenderSystem::Instance().Submit(cmd);
     }
 };
+
+}

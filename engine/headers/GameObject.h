@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <utility>
 
+
+namespace ScrapperEngine {
 class GameObject {
 public:
     GameObject() = default;
@@ -180,3 +182,5 @@ private:
         components.clear();
     }
 };
+
+}

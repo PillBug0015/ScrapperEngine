@@ -4,6 +4,8 @@
 #include "GameObject.h"
 #include "Transform.h"
 
+
+namespace ScrapperEngine {
 class Camera2DComponent : public CameraComponent {
 public:
     Vector2 offset = { 0.0f, 0.0f };
@@ -14,7 +16,8 @@ public:
             return false;
         }
 
-        Transform2D* transform = owner->GetComponent<Transform2D>();
+        // Lazy-caching pointer lookup: O(1) performance after first frame
+        TransformComponent* transform = GetTransform();
         if (transform == nullptr || !transform->IsEnabled()) {
             return false;
         }
@@ -34,4 +37,15 @@ public:
 
 private:
     ::Camera2D camera = { { 0.0f, 0.0f }, { 0.0f, 0.0f }, 0.0f, 1.0f };
+    mutable TransformComponent* cachedTransform = nullptr;
+
+    TransformComponent* GetTransform() const {
+        // Keeps attempting to cache until the sibling TransformComponent is found
+        if (cachedTransform == nullptr && owner != nullptr) {
+            cachedTransform = owner->GetComponent<TransformComponent>();
+        }
+        return cachedTransform;
+    }
 };
+
+}

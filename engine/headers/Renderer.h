@@ -6,6 +6,8 @@
 
 #include <cmath>
 
+
+namespace ScrapperEngine {
 class Renderer : public Component {
 public:
     bool visible = true;
@@ -41,7 +43,8 @@ public:
             return;
         }
 
-        TransformComponent* trans = owner->GetComponent<TransformComponent>();
+        // Lazy-caching pointer lookup: O(1) performance after first frame
+        TransformComponent* trans = GetTransform();
         if (trans == nullptr || !trans->IsEnabled()) {
             return; // Skip rendering completely!
         }
@@ -52,8 +55,18 @@ public:
 protected:
     virtual void SubmitRenderCommand() = 0;
 
+    mutable TransformComponent* cachedTransform = nullptr;
+
+    TransformComponent* GetTransform() const {
+        // Keeps attempting to cache until the sibling TransformComponent is found
+        if (cachedTransform == nullptr && owner != nullptr) {
+            cachedTransform = owner->GetComponent<TransformComponent>();
+        }
+        return cachedTransform;
+    }
+
     Vector2 GetRenderPosition() const {
-        TransformComponent* trans = owner->GetComponent<TransformComponent>();
+        TransformComponent* trans = GetTransform();
         if (trans == nullptr) {
             return offset;
         }
@@ -75,7 +88,7 @@ protected:
     }
 
     float GetRenderRotation() const {
-        TransformComponent* trans = owner->GetComponent<TransformComponent>();
+        TransformComponent* trans = GetTransform();
         if (trans == nullptr) {
             return 0.0f;
         }
@@ -83,7 +96,7 @@ protected:
     }
 
     Vector2 GetRenderScale() const {
-        TransformComponent* trans = owner->GetComponent<TransformComponent>();
+        TransformComponent* trans = GetTransform();
         if (trans == nullptr) {
             return scale;
         }
@@ -92,8 +105,10 @@ protected:
     }
 
 private:
-    int renderIndex = -1;
     RenderBucket renderBucket = RenderBucket::None;
+    int renderIndex = -1;
 
     friend class RenderSystem;
 };
+
+}

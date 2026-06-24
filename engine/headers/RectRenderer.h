@@ -2,6 +2,8 @@
 
 #include "Renderer.h"
 
+
+namespace ScrapperEngine {
 class RectRenderer : public Renderer {
 public:
     Vector2 size = { 0.0f, 0.0f };
@@ -29,3 +31,5 @@ protected:
         RenderSystem::Instance().Submit(cmd);
     }
 };
+
+}

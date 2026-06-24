@@ -3,6 +3,8 @@
 #include "Component.h"
 #include "RenderSystem.h"
 
+
+namespace ScrapperEngine {
 class CameraComponent : public Component {
 public:
     int order = 0;
@@ -22,3 +24,5 @@ public:
     virtual bool Begin() = 0;
     virtual void End() = 0;
 };
+
+}

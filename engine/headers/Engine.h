@@ -5,9 +5,11 @@
 #include <memory>
 #include "GameObject.h"
 
+
+namespace ScrapperEngine {
 class Engine {
 public:
-    Engine(int width, int height, const std::string& title);
+    Engine(int width, int height, const std::string& title, int targetWidth = 1920, int targetHeight = 1080);
     virtual ~Engine();
 
     // Prevent copying
@@ -40,5 +42,11 @@ private:
     std::string windowTitle;
     bool running;
 
+    int targetWidth;
+    int targetHeight;
+    RenderTexture2D targetTexture;
+
     std::vector<std::unique_ptr<GameObject>> gameObjects;
 };
+
+}

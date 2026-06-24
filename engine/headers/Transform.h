@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 
+
+namespace ScrapperEngine {
 class GameObject;
 
 class TransformComponent : public Component {
@@ -321,3 +323,4 @@ private:
     }
 };
 #pragma endregion
+}
