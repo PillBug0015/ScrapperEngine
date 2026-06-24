@@ -1,12 +1,16 @@
-[
-  {
-    "id": "potion_red",
-    "name": "빨간 포션",
-    "price": 50
-  },
-  {
-    "id": "sword_rusty",
-    "name": "녹슨 칼",
-    "price": 150
-  }
-]
+{
+  "records": [
+    {
+      "type": "item",
+      "id": "potion_red",
+      "displayName": "빨간 포션",
+      "price": 50
+    },
+    {
+      "type": "item",
+      "id": "sword_rusty",
+      "displayName": "녹슨 칼",
+      "price": 150
+    }
+  ]
+}

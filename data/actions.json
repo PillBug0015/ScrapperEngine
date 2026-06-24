@@ -1,14 +1,37 @@
-[
-  {
-    "uniqueID": "slash",
-    "displayInitialName": "베기",
-    "mpCost": 5,
-    "damage": 20
-  },
-  {
-    "uniqueID": "heal",
-    "displayInitialName": "치유",
-    "mpCost": 8,
-    "damage": -15
-  }
-]
+{
+  "records": [
+    {
+      "type": "action",
+      "id": "slash",
+      "displayName": "베기",
+      "apCost": 5,
+      "commands": [
+        { "type": "selectTarget", "side": "enemy", "mode": "single" },
+        { "type": "printLog", "text": "{user} slashes {target}!" },
+        { "type": "dealDamage", "stat": "strength", "scale": 1.0 }
+      ]
+    },
+    {
+      "type": "action",
+      "id": "heal",
+      "displayName": "치유",
+      "apCost": 8,
+      "commands": [
+        { "type": "selectTarget", "side": "ally", "mode": "single" },
+        { "type": "printLog", "text": "{user} casts Heal." },
+        { "type": "heal", "amount": 15 }
+      ]
+    },
+    {
+      "type": "action",
+      "id": "slime_bump",
+      "displayName": "몸통박치기",
+      "apCost": 0,
+      "commands": [
+        { "type": "selectTarget", "side": "enemy", "mode": "single" },
+        { "type": "printLog", "text": "{user} bumps into {target}!" },
+        { "type": "dealDamage", "stat": "strength", "scale": 0.8 }
+      ]
+    }
+  ]
+}

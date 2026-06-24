@@ -1,20 +1,51 @@
 {
-  "entity": {
-    "id": "goblin_boss",
-    "name": "고블린 대장"
-  },
-  "actions": [
+  "records": [
     {
-      "id": "boss_smash",
-      "name": "대장 내려치기",
-      "mpCost": 10,
-      "damage": 35
+      "type": "entity",
+      "id": "goblin_boss",
+      "displayName": "고블린 대장",
+      "stats": {
+        "maxHp": 45,
+        "hp": 45,
+        "strength": 8,
+        "intelligence": 2,
+        "mobility": 4
+      },
+      "actionIds": ["boss_smash", "boss_roar"]
     },
     {
+      "type": "action",
+      "id": "boss_smash",
+      "displayName": "대장 내려치기",
+      "apCost": 10,
+      "commands": [
+        { "type": "selectTarget", "side": "enemy", "mode": "single" },
+        { "type": "printLog", "text": "{user} raises a crude club." },
+        { "type": "dealDamage", "stat": "strength", "scale": 1.5 }
+      ]
+    },
+    {
+      "type": "action",
       "id": "boss_roar",
-      "name": "대장의 포효",
-      "mpCost": 5,
-      "damage": 5
+      "displayName": "대장의 포효",
+      "apCost": 5,
+      "commands": [
+        { "type": "selectTarget", "side": "self", "mode": "single" },
+        { "type": "printLog", "text": "{user} lets out a terrible roar!" },
+        { "type": "addModifier", "modifierId": "goblin_roar" }
+      ]
+    },
+    {
+      "type": "modifier",
+      "id": "goblin_roar",
+      "displayName": "포효",
+      "modifierType": "buff"
+    },
+    {
+      "type": "item",
+      "id": "goblin_tooth",
+      "displayName": "고블린 이빨",
+      "price": 15
     }
   ]
 }

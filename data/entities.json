@@ -1,14 +1,43 @@
-[
-  {
-    "id": "player",
-    "name": "플레이어 용사"
-  },
-  {
-    "id": "slime_green",
-    "name": "초록 슬라임"
-  },
-  {
-    "id": "merchant_old",
-    "name": "늙은 상인"
-  }
-]
+{
+  "records": [
+    {
+      "type": "entity",
+      "id": "player",
+      "displayName": "플레이어 용사",
+      "stats": {
+        "maxHp": 30,
+        "hp": 30,
+        "strength": 6,
+        "intelligence": 3,
+        "mobility": 4
+      },
+      "actionIds": ["slash", "heal"]
+    },
+    {
+      "type": "entity",
+      "id": "slime_green",
+      "displayName": "초록 슬라임",
+      "stats": {
+        "maxHp": 12,
+        "hp": 12,
+        "strength": 3,
+        "intelligence": 1,
+        "mobility": 2
+      },
+      "actionIds": ["slime_bump"]
+    },
+    {
+      "type": "entity",
+      "id": "merchant_old",
+      "displayName": "늙은 상인",
+      "stats": {
+        "maxHp": 20,
+        "hp": 20,
+        "strength": 1,
+        "intelligence": 8,
+        "mobility": 1
+      },
+      "actionIds": []
+    }
+  ]
+}
