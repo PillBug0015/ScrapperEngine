@@ -20,6 +20,26 @@ bool Engine::Initialize() {
 
     if (running) {
         targetTexture = LoadRenderTexture(targetWidth, targetHeight);
+
+        // --- 글로벌 기본 한글 폰트 자동 로드 및 연동 ---
+        const char* fontPath = "Fonts/default.ttf";
+        if (FileExists(fontPath)) {
+            std::vector<int> codepoints;
+            // 1. 기본 영문/ASCII 영역 수집 (32 ~ 126)
+            for (int i = 32; i < 127; ++i) {
+                codepoints.push_back(i);
+            }
+            // 2. 한글 음절 전체 영역 수집 (0xAC00 ~ 0xD7A3)
+            for (int i = 0xAC00; i <= 0xD7A3; ++i) {
+                codepoints.push_back(i);
+            }
+            
+            // 3. Raylib 폰트 확장 로드 함수 실행
+            loadedFont = LoadFontEx(fontPath, 32, codepoints.data(), static_cast<int>(codepoints.size()));
+            
+            // 4. 렌더 시스템에 글로벌 폰트 등록
+            RenderSystem::Instance().SetDefaultFont(loadedFont);
+        }
     }
 
     return running;
@@ -29,13 +49,19 @@ void Engine::Shutdown() {
     // 1. First, clear all game objects while the OpenGL context is still alive
     ClearGameObjects();
 
-    // 2. Unload the render texture before closing the window
+    // 2. 글로벌 폰트 해제 (OpenGL 컨텍스트 소멸 전에 수행해야 함)
+    if (loadedFont.texture.id > 0) {
+        UnloadFont(loadedFont);
+        loadedFont = {};
+    }
+
+    // 3. Unload the render texture before closing the window
     if (targetTexture.id != 0) {
         UnloadRenderTexture(targetTexture);
         targetTexture = {};
     }
 
-    // 3. Finally, close the window and destroy the OpenGL context
+    // 4. Finally, close the window and destroy the OpenGL context
     if (IsWindowReady()) {
         CloseWindow();
     }
@@ -82,6 +108,12 @@ void Engine::Run() {
         EndDrawing();
     }
 }
+GameObject* Engine::Instantiate() {
+    auto obj = std::make_unique<GameObject>();
+    GameObject* ptr = obj.get();
+    return ptr;
+}
+
 
 GameObject* Engine::Instantiate2D(Vector2 position, TransformComponent* parent) {
     auto obj = std::make_unique<GameObject>();

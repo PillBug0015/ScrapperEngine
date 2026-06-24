@@ -1,21 +1,15 @@
 #include "Scrapper.h"
 #include "GameDatabase/GameDatabase.h"
+#include "GameManager/GameManager.h"
 #include <iostream>
 
 int main()
 {
-    GameDatabase database;
-    const int loadedFiles = database.LoadDirectory("data");
+    ScrapperEngine::Engine engine(960, 540, "MyMudGame - Scrapper Engine", 960, 540);
 
-    std::cout << "Loaded JSON files: " << loadedFiles << '\n';
-    std::cout << "Entities: " << database.GetEntityCount() << '\n';
-    std::cout << "Actions: " << database.GetActionCount() << '\n';
-    std::cout << "Items: " << database.GetItemCount() << '\n';
-    std::cout << "Modifiers: " << database.GetModifierCount() << '\n';
-
-    const EntityData* goblin = database.FindEntity("goblin_boss");
-    if (goblin != nullptr)
+    if (engine.Initialize())
     {
-        std::cout << "Found entity: " << goblin->Header.DisplayName << '\n';
+
+        engine.Run();
     }
 }

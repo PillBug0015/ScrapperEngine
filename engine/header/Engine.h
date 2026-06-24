@@ -20,6 +20,8 @@ public:
     void Shutdown();
     void Run();
 
+    
+    GameObject* Instantiate();
     GameObject* Instantiate2D(Vector2 position = { 0.0f, 0.0f }, TransformComponent* parent = nullptr);
     GameObject* InstantiateRect(Vector2 position = { 0.0f, 0.0f }, Vector2 size = { 100.0f, 100.0f }, TransformComponent* parent = nullptr);
 
@@ -45,6 +47,7 @@ private:
     int targetWidth;
     int targetHeight;
     RenderTexture2D targetTexture;
+    Font loadedFont = {}; // 엔진이 수동으로 로드한 폰트 객체 보관용
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
 };

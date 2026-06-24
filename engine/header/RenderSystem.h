@@ -77,6 +77,10 @@ public:
     // Main Render Method
     void RenderAll();
 
+    // 글로벌 기본 한글 폰트 연동용 메서드 추가
+    void SetDefaultFont(Font font) { defaultFont = font; }
+    Font GetDefaultFont() const { return defaultFont; }
+
 private:
     std::vector<RenderCommand> worldCommands;
     std::vector<RenderCommand> uiCommands;
@@ -84,6 +88,8 @@ private:
     std::vector<Renderer*> uiRenderers;
     std::vector<CameraComponent*> registeredCameras;
     std::vector<RenderCommand>* activeCommandQueue = nullptr;
+    
+    Font defaultFont = {}; // 글로벌 기본 폰트 객체 보관용
 
     RenderSystem() = default;
     ~RenderSystem() = default;

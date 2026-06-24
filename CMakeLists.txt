@@ -49,7 +49,7 @@ elseif(APPLE)
 endif()
 
 if(MSVC)
-    target_compile_options(MyMudGame PRIVATE /W4) 
+    target_compile_options(MyMudGame PRIVATE /W4 /utf-8) 
 else()
     target_compile_options(MyMudGame PRIVATE -Wall -Wextra -Wpedantic) 
 endif()
@@ -72,3 +72,14 @@ if(APPLE)
         "-framework AudioToolbox"
     )
 endif()
+
+# 6. copy data&font
+add_custom_command(TARGET MyMudGame POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "$<TARGET_FILE_DIR:MyMudGame>/data"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/Fonts"
+        "$<TARGET_FILE_DIR:MyMudGame>/Fonts"
+    COMMENT "Deploying game data and Fonts directories to build output folder..."
+)

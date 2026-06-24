@@ -158,7 +158,13 @@ void RenderSystem::ExecuteCommands(const std::vector<RenderCommand>& cmds) {
                 break;
             }
             case RenderType::TEXT: {
-                DrawText(cmd.text.c_str(), (int)cmd.position.x, (int)cmd.position.y, cmd.fontSize, cmd.color);
+                if (defaultFont.texture.id > 0) {
+                    Vector2 pos = { cmd.position.x, cmd.position.y };
+                    // defaultFont가 로드되어 있으면 DrawTextEx로 선명한 한글을 출력합니다.
+                    DrawTextEx(defaultFont, cmd.text.c_str(), pos, static_cast<float>(cmd.fontSize), 0.0f, cmd.color);
+                } else {
+                    DrawText(cmd.text.c_str(), (int)cmd.position.x, (int)cmd.position.y, cmd.fontSize, cmd.color);
+                }
                 break;
             }
             case RenderType::LINE: {
