@@ -1,0 +1,14 @@
+[
+  {
+    "id": "player",
+    "name": "플레이어 용사"
+  },
+  {
+    "id": "slime_green",
+    "name": "초록 슬라임"
+  },
+  {
+    "id": "merchant_old",
+    "name": "늙은 상인"
+  }
+]

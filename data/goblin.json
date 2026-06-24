@@ -1,0 +1,20 @@
+{
+  "entity": {
+    "id": "goblin_boss",
+    "name": "고블린 대장"
+  },
+  "actions": [
+    {
+      "id": "boss_smash",
+      "name": "대장 내려치기",
+      "mpCost": 10,
+      "damage": 35
+    },
+    {
+      "id": "boss_roar",
+      "name": "대장의 포효",
+      "mpCost": 5,
+      "damage": 5
+    }
+  ]
+}

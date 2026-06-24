@@ -19,7 +19,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 1. find source
-file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS "engine/headers/*.h" "engine/headers/*.hpp")
+file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS "engine/header/*.h" "engine/header/*.hpp")
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS "engine/source/*.cpp")
 
 file(GLOB_RECURSE ASSET_HEADERS CONFIGURE_DEPENDS "Assets/header/*.h" "Assets/header/*.hpp")
@@ -36,7 +36,7 @@ find_package(fmt CONFIG REQUIRED)
 add_executable(MyMudGame ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${ASSET_SOURCES} ${ASSET_HEADERS})
 
 target_include_directories(MyMudGame PRIVATE
-    engine/headers
+    engine/header
     Assets/header
     ${HEADER_DIRS}
 )

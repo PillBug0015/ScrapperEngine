@@ -1,0 +1,14 @@
+[
+  {
+    "uniqueID": "slash",
+    "displayInitialName": "베기",
+    "mpCost": 5,
+    "damage": 20
+  },
+  {
+    "uniqueID": "heal",
+    "displayInitialName": "치유",
+    "mpCost": 8,
+    "damage": -15
+  }
+]
