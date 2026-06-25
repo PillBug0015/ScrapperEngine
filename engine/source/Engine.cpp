@@ -6,20 +6,22 @@
 
 namespace ScrapperEngine {
 Engine::Engine(int width, int height, const std::string& title, int targetWidth, int targetHeight)
-    : windowWidth(width), windowHeight(height), windowTitle(title), running(false),
-      targetWidth(targetWidth), targetHeight(targetHeight), targetTexture{} {}
+    : windowWidth(width), windowHeight(height), windowTitle(title), running(false) {
+    RenderSystem::Instance().ConfigureTargetResolution(targetWidth, targetHeight);
+}
 
 Engine::~Engine() {
     Shutdown();
 }
 
 bool Engine::Initialize() {
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(windowWidth, windowHeight, windowTitle.c_str());
     SetTargetFPS(60);
     running = IsWindowReady();
 
     if (running) {
-        targetTexture = LoadRenderTexture(targetWidth, targetHeight);
+        RenderSystem::Instance().Initialize();
 
         // --- 글로벌 기본 한글 폰트 자동 로드 및 연동 ---
         const char* fontPath = "Fonts/default.ttf";
@@ -53,13 +55,11 @@ void Engine::Shutdown() {
     if (loadedFont.texture.id > 0) {
         UnloadFont(loadedFont);
         loadedFont = {};
+        RenderSystem::Instance().SetDefaultFont({});
     }
 
-    // 3. Unload the render texture before closing the window
-    if (targetTexture.id != 0) {
-        UnloadRenderTexture(targetTexture);
-        targetTexture = {};
-    }
+    // 3. Unload render targets before closing the window
+    RenderSystem::Instance().Shutdown();
 
     // 4. Finally, close the window and destroy the OpenGL context
     if (IsWindowReady()) {
@@ -75,37 +75,7 @@ void Engine::Run() {
         float deltaTime = GetFrameTime();
         Update(deltaTime);
 
-        // 1. Draw the game onto the virtual texture at Target Resolution (1080p)
-        BeginTextureMode(targetTexture);
-        ClearBackground(BLACK);
-        Draw();
-        EndTextureMode();
-
-        // 2. Draw the virtual texture to the actual window, scaling with aspect-ratio preservation (Letterboxing)
-        BeginDrawing();
-        ClearBackground(BLACK); // Clear letterbox areas
-
-        // Calculate scale factor to fit the actual window size
-        float scale = std::min(
-            static_cast<float>(GetScreenWidth()) / targetWidth,
-            static_cast<float>(GetScreenHeight()) / targetHeight
-        );
-
-        // Calculate centered destination dimensions
-        float destWidth = targetWidth * scale;
-        float destHeight = targetHeight * scale;
-        float destX = (GetScreenWidth() - destWidth) * 0.5f;
-        float destY = (GetScreenHeight() - destHeight) * 0.5f;
-
-        // Source rectangle (y-flipped because OpenGL texture coordinates are y-inverted)
-        Rectangle source = { 0.0f, 0.0f, static_cast<float>(targetTexture.texture.width), -static_cast<float>(targetTexture.texture.height) };
-        Rectangle dest = { destX, destY, destWidth, destHeight };
-        Vector2 origin = { 0.0f, 0.0f };
-
-        // Render the virtual texture to the screen
-        DrawTexturePro(targetTexture.texture, source, dest, origin, 0.0f, WHITE);
-
-        EndDrawing();
+        RenderSystem::Instance().RenderFrame();
     }
 }
 GameObject* Engine::Instantiate() {
@@ -147,12 +117,6 @@ void Engine::Update(float deltaTime) {
     }
 
     RemoveDestroyedGameObjects();
-}
-
-void Engine::Draw() {
-    // All rendering is now managed by registered renderers inside RenderSystem.
-    // There is no need to traverse GameObjects to draw them.
-    RenderSystem::Instance().RenderAll();
 }
 
 void Engine::RemoveDestroyedGameObjects() {

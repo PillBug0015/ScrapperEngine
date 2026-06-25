@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.h"
+#include "RenderSystem.h"
 #include <raylib.h>
 #include <vector>
 #include <algorithm>
@@ -231,6 +232,7 @@ class RectTransform : public TransformComponent {
 public:
     Vector2 size = { 100.0f, 100.0f };
     Vector2 pivot = { 0.5f, 0.5f };
+    Vector2 anchor = { 0.0f, 0.0f };
 
     RectTransform() = default;
     RectTransform(Vector2 size, Vector2 pivot = { 0.5f, 0.5f })
@@ -239,6 +241,16 @@ public:
     Vector2 GetLocalPosition() const override { return localPosition; }
     void SetLocalPosition(Vector2 pos) override {
         localPosition = pos;
+        MakeDirty();
+    }
+
+    Vector2 GetAnchoredPosition() const { return localPosition; }
+    void SetAnchoredPosition(Vector2 pos) {
+        SetLocalPosition(pos);
+    }
+
+    void SetAnchor(Vector2 newAnchor) {
+        anchor = newAnchor;
         MakeDirty();
     }
 
@@ -298,15 +310,26 @@ private:
 
     void RecalculateWorldTransform() const {
         if (!parent) {
-            cachedWorldPosition = localPosition;
+            Vector2 targetSize = RenderSystem::Instance().GetTargetResolution();
+            cachedWorldPosition = {
+                targetSize.x * anchor.x + localPosition.x,
+                targetSize.y * anchor.y + localPosition.y
+            };
             cachedWorldRotation = localRotation;
             cachedWorldScale = localScale;
         } else {
-            Vector2 parentPos = parent->GetWorldPosition();
-            Vector2 parentScale = parent->GetWorldScale();
-            float parentRotRad = parent->GetWorldRotation() * DEG2RAD;
+            const Vector2 parentPos = parent->GetWorldPosition();
+            const Vector2 parentScale = parent->GetWorldScale();
+            const float parentRotation = parent->GetWorldRotation();
+            const float parentRotRad = parentRotation * DEG2RAD;
+            Vector2 anchorOffset = localPosition;
 
-            Vector2 scaledLocal = { localPosition.x * parentScale.x, localPosition.y * parentScale.y };
+            if (const RectTransform* parentRect = dynamic_cast<const RectTransform*>(parent)) {
+                anchorOffset.x += parentRect->size.x * (anchor.x - parentRect->pivot.x);
+                anchorOffset.y += parentRect->size.y * (anchor.y - parentRect->pivot.y);
+            }
+
+            Vector2 scaledLocal = { anchorOffset.x * parentScale.x, anchorOffset.y * parentScale.y };
 
             float cosRot = std::cos(parentRotRad);
             float sinRot = std::sin(parentRotRad);
@@ -316,7 +339,7 @@ private:
             };
 
             cachedWorldPosition = { parentPos.x + rotatedLocal.x, parentPos.y + rotatedLocal.y };
-            cachedWorldRotation = parent->GetWorldRotation() + localRotation;
+            cachedWorldRotation = parentRotation + localRotation;
             cachedWorldScale = { parentScale.x * localScale.x, parentScale.y * localScale.y };
         }
         isDirty = false;

@@ -1,7 +1,7 @@
 #include "Scrapper.h"
-#include "GameDatabase/GameDatabase.h"
-#include "GameManager/GameManager.h"
-#include <iostream>
+#include "Core/GameManager.h"
+#include "System/CombatSystem/CombatSystem.h"
+#include "System/EventSystem/EventSystem.h"
 
 int main()
 {
@@ -9,7 +9,13 @@ int main()
 
     if (engine.Initialize())
     {
+        ScrapperEngine::GameObject* root = engine.Instantiate2D();
+        auto* eventSystem = root->AddComponent<MyMudGame::EventSystem>();
+        auto* combatSystem = root->AddComponent<MyMudGame::CombatSystem>();
+        root->AddComponent<MyMudGame::GameManager>(eventSystem, combatSystem);
 
         engine.Run();
     }
+
+    return 0;
 }

@@ -61,6 +61,17 @@ public:
         return instance;
     }
 
+    void ConfigureTargetResolution(int width, int height);
+    void Initialize();
+    void Shutdown();
+    void RenderFrame();
+
+    void SetTargetResolution(int width, int height);
+    Vector2 GetTargetResolution() const;
+    Rectangle GetViewportRect() const;
+    float GetRenderScale() const;
+    Vector2 ScreenToTarget(Vector2 screenPosition) const;
+
     void Submit(const RenderCommand& cmd);
 
     void Clear() {
@@ -90,6 +101,10 @@ private:
     std::vector<RenderCommand>* activeCommandQueue = nullptr;
     
     Font defaultFont = {}; // 글로벌 기본 폰트 객체 보관용
+    RenderTexture2D targetTexture = {};
+    int targetWidth = 1920;
+    int targetHeight = 1080;
+    bool initialized = false;
 
     RenderSystem() = default;
     ~RenderSystem() = default;
@@ -103,6 +118,7 @@ private:
 
     void CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>& commands);
     void ExecuteCommands(const std::vector<RenderCommand>& cmds);
+    void RecreateTargetTexture();
 };
 
 }

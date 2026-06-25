@@ -5,6 +5,128 @@
 
 
 namespace ScrapperEngine {
+void RenderSystem::ConfigureTargetResolution(int width, int height) {
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    targetWidth = width;
+    targetHeight = height;
+}
+
+void RenderSystem::Initialize() {
+    if (initialized) {
+        return;
+    }
+
+    RecreateTargetTexture();
+    initialized = targetTexture.id != 0;
+}
+
+void RenderSystem::Shutdown() {
+    Clear();
+
+    if (targetTexture.id != 0) {
+        UnloadRenderTexture(targetTexture);
+        targetTexture = {};
+    }
+
+    initialized = false;
+}
+
+void RenderSystem::RenderFrame() {
+    if (!initialized || targetTexture.id == 0) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        RenderAll();
+        EndDrawing();
+        return;
+    }
+
+    BeginTextureMode(targetTexture);
+    ClearBackground(BLACK);
+    RenderAll();
+    EndTextureMode();
+
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    Rectangle source = {
+        0.0f,
+        0.0f,
+        static_cast<float>(targetTexture.texture.width),
+        -static_cast<float>(targetTexture.texture.height)
+    };
+    Rectangle destination = GetViewportRect();
+    Vector2 origin = { 0.0f, 0.0f };
+
+    DrawTexturePro(targetTexture.texture, source, destination, origin, 0.0f, WHITE);
+
+    EndDrawing();
+}
+
+void RenderSystem::SetTargetResolution(int width, int height) {
+    if (width <= 0 || height <= 0 || (width == targetWidth && height == targetHeight)) {
+        return;
+    }
+
+    targetWidth = width;
+    targetHeight = height;
+
+    if (initialized && IsWindowReady()) {
+        RecreateTargetTexture();
+    }
+}
+
+Vector2 RenderSystem::GetTargetResolution() const {
+    return {
+        static_cast<float>(targetWidth),
+        static_cast<float>(targetHeight)
+    };
+}
+
+Rectangle RenderSystem::GetViewportRect() const {
+    if (targetWidth <= 0 || targetHeight <= 0) {
+        return { 0.0f, 0.0f, 0.0f, 0.0f };
+    }
+
+    const float scale = GetRenderScale();
+    const float width = static_cast<float>(targetWidth) * scale;
+    const float height = static_cast<float>(targetHeight) * scale;
+
+    return {
+        (static_cast<float>(GetScreenWidth()) - width) * 0.5f,
+        (static_cast<float>(GetScreenHeight()) - height) * 0.5f,
+        width,
+        height
+    };
+}
+
+float RenderSystem::GetRenderScale() const {
+    if (targetWidth <= 0 || targetHeight <= 0) {
+        return 1.0f;
+    }
+
+    return std::min(
+        static_cast<float>(GetScreenWidth()) / static_cast<float>(targetWidth),
+        static_cast<float>(GetScreenHeight()) / static_cast<float>(targetHeight)
+    );
+}
+
+Vector2 RenderSystem::ScreenToTarget(Vector2 screenPosition) const {
+    const Rectangle viewport = GetViewportRect();
+    const float scale = GetRenderScale();
+
+    if (scale <= 0.0f) {
+        return { 0.0f, 0.0f };
+    }
+
+    return {
+        (screenPosition.x - viewport.x) / scale,
+        (screenPosition.y - viewport.y) / scale
+    };
+}
+
 void RenderSystem::RegisterRenderer(Renderer* r) {
     if (r == nullptr || r->owner == nullptr) {
         return;
@@ -172,6 +294,17 @@ void RenderSystem::ExecuteCommands(const std::vector<RenderCommand>& cmds) {
                 break;
             }
         }
+    }
+}
+
+void RenderSystem::RecreateTargetTexture() {
+    if (targetTexture.id != 0) {
+        UnloadRenderTexture(targetTexture);
+        targetTexture = {};
+    }
+
+    if (IsWindowReady()) {
+        targetTexture = LoadRenderTexture(targetWidth, targetHeight);
     }
 }
 

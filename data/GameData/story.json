@@ -1,0 +1,75 @@
+[
+  {
+    "type": "event",
+    "id": "intro_scene",
+    "name": "오프닝 씬",
+    "commands": [
+      {
+        "type": "text",
+        "text": "깊은 어둠 속에서 눈을 듭니다. 낯선 노인이 당신을 바라보고 있습니다."
+      },
+      {
+        "type": "choice",
+        "choices": [
+          { "text": "노인에게 말을 건다", "targetEvent": "talk_elder" },
+          { "text": "주변을 둘러본다", "targetEvent": "look_around" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "id": "talk_elder",
+    "name": "노인의 경고",
+    "commands": [
+      {
+        "type": "text",
+        "text": "노인은 낡은 지도를 건네며 말합니다. \"북쪽 통로는 무너졌지만, 아직 작은 길이 남아 있네.\""
+      },
+      {
+        "type": "choice",
+        "choices": [
+          { "text": "작은 길로 향한다", "targetEvent": "narrow_path" },
+          { "text": "처음 장소로 돌아간다", "targetEvent": "intro_scene" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "id": "look_around",
+    "name": "주변 탐색",
+    "commands": [
+      {
+        "type": "text",
+        "text": "꺼진 모닥불 옆에서 반짝이는 표식을 발견합니다. 누군가 방금 이곳을 지나간 것 같습니다."
+      },
+      {
+        "type": "choice",
+        "choices": [
+          { "text": "표식을 따라간다", "targetEvent": "narrow_path" },
+          { "text": "노인에게 보여준다", "targetEvent": "talk_elder" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "id": "narrow_path",
+    "name": "좁은 길",
+    "commands": [
+      {
+        "type": "text",
+        "text": "좁은 길 끝에서 젖은 발자국들이 빛납니다. 작은 적들이 길목을 막고 있습니다."
+      },
+      {
+        "type": "combat",
+        "enemies": ["slime_green", "slime_green"]
+      },
+      {
+        "type": "text",
+        "text": "길이 열렸습니다. 데모는 여기까지지만, 엔진은 계속 돌아갈 준비가 되어 있습니다."
+      }
+    ]
+  }
+]

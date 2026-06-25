@@ -36,7 +36,6 @@ public:
 
 private:
     void Update(float deltaTime);
-    void Draw();
     void RemoveDestroyedGameObjects();
 
     int windowWidth;
@@ -44,9 +43,6 @@ private:
     std::string windowTitle;
     bool running;
 
-    int targetWidth;
-    int targetHeight;
-    RenderTexture2D targetTexture;
     Font loadedFont = {}; // 엔진이 수동으로 로드한 폰트 객체 보관용
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
