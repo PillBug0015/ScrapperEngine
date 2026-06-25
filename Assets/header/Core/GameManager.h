@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Component.h"
+#include "Core/Component/Component.h"
 #include "GameDatabase/GameDatabase.h"
 
 namespace MyMudGame {

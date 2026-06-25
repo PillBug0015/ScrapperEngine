@@ -1,6 +1,6 @@
-#include "RenderSystem.h"
-#include "CameraComponent.h"
-#include "Renderer.h"
+#include "Rendering/RenderSystem.h"
+#include "Rendering/CameraComponent/CameraComponent.h"
+#include "Rendering/RendererComponent/Renderer.h"
 #include <algorithm>
 
 

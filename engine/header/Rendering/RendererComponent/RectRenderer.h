@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Renderer.h"
-
+#include "Rendering/RendererComponent/Renderer.h"
 
 namespace ScrapperEngine {
 class RectRenderer : public Renderer {

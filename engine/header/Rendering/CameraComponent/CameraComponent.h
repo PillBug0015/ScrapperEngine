@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Component.h"
-#include "RenderSystem.h"
+#include "Core/Component/Component.h"
+#include "Rendering/RenderSystem.h"
 
 
 namespace ScrapperEngine {

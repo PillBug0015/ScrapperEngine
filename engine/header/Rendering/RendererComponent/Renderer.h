@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Component.h"
-#include "GameObject.h"
-#include "RenderSystem.h"
+#include "Core/Component/Component.h"
+#include "Core/GameObject.h"
+#include "Rendering/RenderSystem.h"
 
 #include <cmath>
-
 
 namespace ScrapperEngine {
 class Renderer : public Component {

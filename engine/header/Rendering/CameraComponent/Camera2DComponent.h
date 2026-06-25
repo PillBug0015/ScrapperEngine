@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CameraComponent.h"
-#include "GameObject.h"
-#include "Transform.h"
+#include "Rendering/CameraComponent/CameraComponent.h"
+#include "Core/GameObject.h"
+#include "Core/TransformSystem/Transform.h"
 
 
 namespace ScrapperEngine {

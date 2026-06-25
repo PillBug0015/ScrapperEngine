@@ -1,6 +1,6 @@
 #include "Core/GameManager.h"
 
-#include "Scrapper.h"
+#include "ScrapperEngine.h"
 #include "System/CombatSystem/CombatSystem.h"
 #include "System/EventSystem/EventSystem.h"
 

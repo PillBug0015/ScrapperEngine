@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Transform.h"
-#include "Component.h"
+#include "Core/Component/Component.h"
+#include "Core/TransformSystem/Transform.h"
+
 #include <vector>
 #include <memory>
 #include <type_traits>
@@ -13,9 +14,6 @@ class GameObject {
 public:
     GameObject() = default;
 
-    TransformComponent* GetTransform() const {
-        return GetComponent<TransformComponent>();
-    }
     ~GameObject() {
         DestroyComponents();
     }
@@ -110,7 +108,7 @@ public:
         const bool wasActiveInHierarchy = activeInHierarchy;
         destroyed = true;
 
-        TransformComponent* trans = GetTransform();
+        TransformComponent* trans = GetComponent<TransformComponent>();
         if (trans) {
             for (auto* childTrans : trans->children) {
                 if (childTrans && childTrans->owner) {
@@ -133,7 +131,7 @@ private:
             }
         }
         // 2. Check child transforms recursively
-        const TransformComponent* trans = GetTransform();
+        const TransformComponent* trans = GetComponent<TransformComponent>();
         if (trans) {
             for (const auto* childTrans : trans->children) {
                 if (childTrans && childTrans->owner) {

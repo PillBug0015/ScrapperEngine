@@ -3,7 +3,10 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "GameObject.h"
+
+#include "Core/GameObject.h"
+#include "Core/Component/Component.h"
+#include "Core/TransformSystem/Transform.h"
 
 
 namespace ScrapperEngine {

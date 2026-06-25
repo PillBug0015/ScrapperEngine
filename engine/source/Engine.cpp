@@ -1,5 +1,5 @@
-#include "Engine.h"
-#include "RenderSystem.h"
+#include "Core/Engine.h"
+#include "Rendering/RenderSystem.h"
 #include <algorithm>
 #include <raylib.h>
 
