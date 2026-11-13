@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Component/Component.h"
-#include "Core/TransformSystem/Transform.h"
+#include "Core/TransformSystem/TransformComponent.h"
 
 #include <vector>
 #include <memory>
@@ -77,6 +77,18 @@ public:
         }
     }
 
+    void LateUpdate(float deltaTime) {
+        if (!CanRunComponents()) {
+            return;
+        }
+
+        for (auto& comp : components) {
+            if (comp && comp->IsEnabled()) {
+                comp->LateUpdate(deltaTime);
+            }
+        }
+    }
+
 
 
     bool IsActive() const {
@@ -97,7 +109,7 @@ public:
         }
 
         activeSelf = newActive;
-        SetActiveInHierarchy(newActive);
+        ApplyHierarchyActive(IsParentActiveInHierarchy());
     }
 
     void Destroy() {
@@ -108,10 +120,11 @@ public:
         const bool wasActiveInHierarchy = activeInHierarchy;
         destroyed = true;
 
-        TransformComponent* trans = GetComponent<TransformComponent>();
-        if (trans) {
-            for (auto* childTrans : trans->children) {
-                if (childTrans && childTrans->owner) {
+        // Copy: each child's transform detaches itself from this list while being destroyed.
+        if (const TransformComponent* trans = GetComponent<TransformComponent>()) {
+            const std::vector<TransformComponent*> children = trans->GetChildren();
+            for (TransformComponent* childTrans : children) {
+                if (childTrans->owner) {
                     childTrans->owner->Destroy();
                 }
             }
@@ -121,6 +134,39 @@ public:
     }
 
 private:
+    // Active state of the parent GameObject (true when this object is a root)
+    bool IsParentActiveInHierarchy() const {
+        const TransformComponent* trans = GetComponent<TransformComponent>();
+        if (trans == nullptr || trans->GetParent() == nullptr || trans->GetParent()->owner == nullptr) {
+            return true;
+        }
+        return trans->GetParent()->owner->IsActiveInHierarchy();
+    }
+
+    // Recomputes activeInHierarchy for this object and propagates it down the transform tree,
+    // so deactivating a parent also silences every child GameObject (Unity-like semantics).
+    void ApplyHierarchyActive(bool parentActiveInHierarchy) {
+        if (destroyed) {
+            return;
+        }
+
+        const bool nextActiveInHierarchy = activeSelf && parentActiveInHierarchy;
+        if (activeInHierarchy != nextActiveInHierarchy) {
+            SetActiveInHierarchy(nextActiveInHierarchy);
+        }
+
+        const TransformComponent* trans = GetComponent<TransformComponent>();
+        if (trans == nullptr) {
+            return;
+        }
+
+        for (TransformComponent* childTrans : trans->GetChildren()) {
+            if (childTrans->owner) {
+                childTrans->owner->ApplyHierarchyActive(activeInHierarchy);
+            }
+        }
+    }
+
     template <typename T>
     void GetComponentsInChildrenInternal(std::vector<T*>& outResults) const {
         // 1. Check components on this GameObject
@@ -133,8 +179,8 @@ private:
         // 2. Check child transforms recursively
         const TransformComponent* trans = GetComponent<TransformComponent>();
         if (trans) {
-            for (const auto* childTrans : trans->children) {
-                if (childTrans && childTrans->owner) {
+            for (const TransformComponent* childTrans : trans->GetChildren()) {
+                if (childTrans->owner) {
                     childTrans->owner->GetComponentsInChildrenInternal<T>(outResults);
                 }
             }

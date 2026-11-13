@@ -20,6 +20,8 @@ public:
     virtual void OnDisable() {}
     virtual void OnDestroy() {}
     virtual void Update(float /*deltaTime*/) {}
+    // Runs after the physics step, so it sees this frame's final poses.
+    virtual void LateUpdate(float /*deltaTime*/) {}
 
     bool IsEnabled() const {
         return enabled && !destroyed;

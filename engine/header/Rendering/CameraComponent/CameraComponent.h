@@ -21,6 +21,8 @@ public:
         RenderSystem::Instance().UnregisterCamera(this);
     }
 
+    // World2D or World3D: which world commands this camera renders.
+    virtual RenderBucket Space() const = 0;
     virtual bool Begin() = 0;
     virtual void End() = 0;
 };

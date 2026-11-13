@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Rendering/RendererComponent/Renderer.h"
+#include "Rendering/RendererComponent/Renderer2D.h"
 
 namespace ScrapperEngine {
-class RectRenderer : public Renderer {
+class RectRenderer : public Renderer2D {
 public:
     Vector2 size = { 0.0f, 0.0f };
     Color color = WHITE;

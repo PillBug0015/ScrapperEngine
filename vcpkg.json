@@ -6,7 +6,11 @@
     "fmt",
     "raylib",
     "glfw3",
-    "nlohmann-json"
+    "nlohmann-json",
+    "joltphysics",
+    "flecs",
+    "entt",
+    "enet"
   ],
   "overrides": [
     { "name": "raylib", "version": "5.5" }

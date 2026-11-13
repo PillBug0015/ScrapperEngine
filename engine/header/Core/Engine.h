@@ -25,15 +25,27 @@ public:
 
     
     GameObject* Instantiate();
-    GameObject* Instantiate2D(Vector2 position = { 0.0f, 0.0f }, TransformComponent* parent = nullptr);
-    GameObject* InstantiateRect(Vector2 position = { 0.0f, 0.0f }, Vector2 size = { 100.0f, 100.0f }, TransformComponent* parent = nullptr);
+    GameObject* Instantiate2D(Vector2 position = { 0.0f, 0.0f }, Transform2DBase* parent = nullptr);
+    GameObject* InstantiateRect(Vector2 position = { 0.0f, 0.0f }, Vector2 size = { 100.0f, 100.0f }, Transform2DBase* parent = nullptr);
+    GameObject* Instantiate3D(Vector3 position = { 0.0f, 0.0f, 0.0f }, Transform3D* parent = nullptr);
 
-    // Manage GameObjects running in the Engine
+    // Manage GameObjects running in the Engine.
+    // Instantiating while the update loop is running would invalidate the iteration,
+    // so new objects are parked in a pending buffer and merged at the end of the frame.
     void AddGameObject(std::unique_ptr<GameObject> obj) {
-        gameObjects.push_back(std::move(obj));
+        if (obj == nullptr) {
+            return;
+        }
+
+        if (updating) {
+            pendingGameObjects.push_back(std::move(obj));
+        } else {
+            gameObjects.push_back(std::move(obj));
+        }
     }
 
     void ClearGameObjects() {
+        pendingGameObjects.clear();
         gameObjects.clear();
     }
 
@@ -48,7 +60,10 @@ private:
 
     Font loadedFont = {}; // 엔진이 수동으로 로드한 폰트 객체 보관용
 
+    bool updating = false;
+
     std::vector<std::unique_ptr<GameObject>> gameObjects;
+    std::vector<std::unique_ptr<GameObject>> pendingGameObjects;
 };
 
 }

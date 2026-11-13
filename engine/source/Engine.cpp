@@ -1,5 +1,6 @@
 #include "Core/Engine.h"
 #include "Rendering/RenderSystem.h"
+#include "Physics/PhysicsWorld.h"
 #include <algorithm>
 #include <raylib.h>
 
@@ -27,11 +28,10 @@ bool Engine::Initialize() {
         const char* fontPath = "Fonts/default.ttf";
         if (FileExists(fontPath)) {
             std::vector<int> codepoints;
-            // 1. 기본 영문/ASCII 영역 수집 (32 ~ 126)
             for (int i = 32; i < 127; ++i) {
                 codepoints.push_back(i);
             }
-            // 2. 한글 음절 전체 영역 수집 (0xAC00 ~ 0xD7A3)
+            
             for (int i = 0xAC00; i <= 0xD7A3; ++i) {
                 codepoints.push_back(i);
             }
@@ -42,14 +42,17 @@ bool Engine::Initialize() {
             // 4. 렌더 시스템에 글로벌 폰트 등록
             RenderSystem::Instance().SetDefaultFont(loadedFont);
         }
+
+        PhysicsWorld::Instance().Initialize();
     }
 
     return running;
 }
 
 void Engine::Shutdown() {
-    // 1. First, clear all game objects while the OpenGL context is still alive
+    // 1. First, clear all game objects while the OpenGL context and physics world are still alive
     ClearGameObjects();
+    PhysicsWorld::Instance().Shutdown();
 
     // 2. 글로벌 폰트 해제 (OpenGL 컨텍스트 소멸 전에 수행해야 함)
     if (loadedFont.texture.id > 0) {
@@ -81,11 +84,13 @@ void Engine::Run() {
 GameObject* Engine::Instantiate() {
     auto obj = std::make_unique<GameObject>();
     GameObject* ptr = obj.get();
+
+    AddGameObject(std::move(obj));
     return ptr;
 }
 
 
-GameObject* Engine::Instantiate2D(Vector2 position, TransformComponent* parent) {
+GameObject* Engine::Instantiate2D(Vector2 position, Transform2DBase* parent) {
     auto obj = std::make_unique<GameObject>();
     GameObject* ptr = obj.get();
 
@@ -97,7 +102,7 @@ GameObject* Engine::Instantiate2D(Vector2 position, TransformComponent* parent) 
     return ptr;
 }
 
-GameObject* Engine::InstantiateRect(Vector2 position, Vector2 size, TransformComponent* parent) {
+GameObject* Engine::InstantiateRect(Vector2 position, Vector2 size, Transform2DBase* parent) {
     auto obj = std::make_unique<GameObject>();
     GameObject* ptr = obj.get();
 
@@ -109,12 +114,47 @@ GameObject* Engine::InstantiateRect(Vector2 position, Vector2 size, TransformCom
     return ptr;
 }
 
+GameObject* Engine::Instantiate3D(Vector3 position, Transform3D* parent) {
+    auto obj = std::make_unique<GameObject>();
+    GameObject* ptr = obj.get();
+
+    Transform3D* transform = ptr->AddComponent<Transform3D>();
+    transform->SetLocalPosition(position);
+    transform->SetParent(parent);
+
+    AddGameObject(std::move(obj));
+    return ptr;
+}
+
 void Engine::Update(float deltaTime) {
-    for (auto& obj : gameObjects) {
+    updating = true;
+
+    // Index-based loop: objects spawned during Update land in pendingGameObjects,
+    // so this container is never reallocated mid-iteration.
+    for (std::size_t i = 0; i < gameObjects.size(); ++i) {
+        GameObject* obj = gameObjects[i].get();
         if (obj && obj->IsActiveInHierarchy()) {
             obj->Update(deltaTime);
         }
     }
+
+    // Game logic has applied its forces; advance physics and write poses back to transforms.
+    PhysicsWorld::Instance().Step(deltaTime);
+
+    for (std::size_t i = 0; i < gameObjects.size(); ++i) {
+        GameObject* obj = gameObjects[i].get();
+        if (obj && obj->IsActiveInHierarchy()) {
+            obj->LateUpdate(deltaTime);
+        }
+    }
+
+    updating = false;
+
+    // Objects created this frame join the simulation from the next frame on.
+    for (auto& pending : pendingGameObjects) {
+        gameObjects.push_back(std::move(pending));
+    }
+    pendingGameObjects.clear();
 
     RemoveDestroyedGameObjects();
 }

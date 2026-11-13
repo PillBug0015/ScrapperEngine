@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Rendering/RendererComponent/Renderer.h"
+#include "Rendering/RendererComponent/Renderer2D.h"
 
 
 namespace ScrapperEngine {
-class SpriteRenderer : public Renderer {
+class SpriteRenderer : public Renderer2D {
 public:
     Texture2D texture = {};
     Rectangle sourceRect = { 0.0f, 0.0f, 0.0f, 0.0f };

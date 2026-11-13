@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Rendering/RendererComponent/Renderer.h"
+#include "Rendering/RendererComponent/Renderer2D.h"
 
 
 namespace ScrapperEngine {
-class TextRenderer : public Renderer {
+class TextRenderer : public Renderer2D {
 public:
     std::string text = "";
     int fontSize = 20;

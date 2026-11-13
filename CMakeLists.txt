@@ -31,6 +31,8 @@ find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED) 
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
+find_package(unofficial-enet CONFIG REQUIRED)
 
 # 3. executable
 add_executable(MyMudGame ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${ASSET_SOURCES} ${ASSET_HEADERS})
@@ -60,7 +62,14 @@ target_link_libraries(MyMudGame PRIVATE
     raylib
     nlohmann_json::nlohmann_json
     fmt::fmt
+    Jolt::Jolt
+    unofficial::enet::enet
 )
+
+# ENet's own CMake links these only for MinGW, so MSVC builds need them here.
+if(WIN32)
+    target_link_libraries(MyMudGame PRIVATE ws2_32 winmm)
+endif()
 
 if(APPLE)
     target_link_libraries(MyMudGame PRIVATE 
@@ -73,13 +82,10 @@ if(APPLE)
     )
 endif()
 
-# 6. copy data&font
+# 6. copy font
 add_custom_command(TARGET MyMudGame POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/data"
-        "$<TARGET_FILE_DIR:MyMudGame>/data"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/Fonts"
         "$<TARGET_FILE_DIR:MyMudGame>/Fonts"
-    COMMENT "Deploying game data and Fonts directories to build output folder..."
+    COMMENT "Deploying Fonts directory to build output folder..."
 )

@@ -2,6 +2,7 @@
 #include "Rendering/CameraComponent/CameraComponent.h"
 #include "Rendering/RendererComponent/Renderer.h"
 #include <algorithm>
+#include <raymath.h>
 
 
 namespace ScrapperEngine {
@@ -21,10 +22,15 @@ void RenderSystem::Initialize() {
 
     RecreateTargetTexture();
     initialized = targetTexture.id != 0;
+
+    if (initialized) {
+        Load3DResources();
+    }
 }
 
 void RenderSystem::Shutdown() {
     Clear();
+    Unload3DResources();
 
     if (targetTexture.id != 0) {
         UnloadRenderTexture(targetTexture);
@@ -44,7 +50,7 @@ void RenderSystem::RenderFrame() {
     }
 
     BeginTextureMode(targetTexture);
-    ClearBackground(BLACK);
+    ClearBackground(clearColor);
     RenderAll();
     EndTextureMode();
 
@@ -134,26 +140,46 @@ void RenderSystem::RegisterRenderer(Renderer* r) {
 
     UnregisterRenderer(r);
 
-    if (r->owner->GetComponent<RectTransform>() != nullptr) {
-        RegisterUIRenderer(r);
+    const RenderBucket bucket = r->ResolveBucket();
+    std::vector<Renderer*>* renderers = BucketOf(bucket);
+    if (renderers == nullptr) {
         return;
     }
 
-    if (r->owner->GetComponent<Transform2D>() != nullptr) {
-        RegisterWorldRenderer(r);
-    }
+    r->renderBucket = bucket;
+    r->renderIndex = static_cast<int>(renderers->size());
+    renderers->push_back(r);
 }
 
 void RenderSystem::UnregisterRenderer(Renderer* r) {
-    if (r == nullptr || r->renderBucket == RenderBucket::None) {
+    if (r == nullptr) {
         return;
     }
 
-    if (r->renderBucket == RenderBucket::World) {
-        UnregisterFromBucket(r, worldRenderers);
-    } else {
-        UnregisterFromBucket(r, uiRenderers);
+    std::vector<Renderer*>* renderers = BucketOf(r->renderBucket);
+    if (renderers == nullptr) {
+        return;
     }
+
+    // Swap-remove keeps every bucket dense.
+    const int index = r->renderIndex;
+    Renderer* moved = renderers->back();
+    (*renderers)[static_cast<std::size_t>(index)] = moved;
+    moved->renderIndex = index;
+    renderers->pop_back();
+
+    r->renderIndex = -1;
+    r->renderBucket = RenderBucket::None;
+}
+
+std::vector<Renderer*>* RenderSystem::BucketOf(RenderBucket bucket) {
+    switch (bucket) {
+        case RenderBucket::World2D: return &world2DRenderers;
+        case RenderBucket::World3D: return &world3DRenderers;
+        case RenderBucket::UI:      return &uiRenderers;
+        case RenderBucket::None:    break;
+    }
+    return nullptr;
 }
 
 void RenderSystem::RegisterCamera(CameraComponent* camera) {
@@ -170,46 +196,46 @@ void RenderSystem::UnregisterCamera(CameraComponent* camera) {
 }
 
 void RenderSystem::RenderAll() {
-    // 1. Clear temporary command queues
-    worldCommands.clear();
-    uiCommands.clear();
+    // 1. Query active renderers from each dense renderer bucket.
+    Clear();
+    CollectCommands(world3DRenderers, nullptr);
+    CollectCommands(world2DRenderers, &world2DCommands);
+    CollectCommands(uiRenderers, &uiCommands);
 
-    // 2. Query active renderers from each dense renderer bucket.
-    CollectCommands(worldRenderers, worldCommands);
-    CollectCommands(uiRenderers, uiCommands);
-
-    // 3. Sort world commands by layer ascending
-    std::sort(worldCommands.begin(), worldCommands.end(), [](const RenderCommand& a, const RenderCommand& b) {
+    // 2. Sort 2D commands by layer ascending (3D relies on the depth buffer)
+    const auto byLayer = [](const RenderCommand& a, const RenderCommand& b) {
         return a.layer < b.layer;
-    });
+    };
+    std::sort(world2DCommands.begin(), world2DCommands.end(), byLayer);
+    std::sort(uiCommands.begin(), uiCommands.end(), byLayer);
 
-    // 4. Sort UI commands by layer ascending
-    std::sort(uiCommands.begin(), uiCommands.end(), [](const RenderCommand& a, const RenderCommand& b) {
-        return a.layer < b.layer;
-    });
-
-    // 5. Render world commands through registered cameras in order.
+    // 3. Render world commands through registered cameras in order.
     std::sort(registeredCameras.begin(), registeredCameras.end(), [](const CameraComponent* a, const CameraComponent* b) {
         return a->order < b->order;
     });
 
-    bool renderedWorld = false;
+    bool renderedWorld2D = false;
     for (CameraComponent* camera : registeredCameras) {
-        if (camera && camera->IsEnabled() && camera->Begin()) {
-            ExecuteCommands(worldCommands);
-            camera->End();
-            renderedWorld = true;
+        if (!camera->IsEnabled() || !camera->Begin()) {
+            continue;
         }
+
+        if (camera->Space() == RenderBucket::World3D) {
+            Execute3DCommands();
+        } else {
+            ExecuteCommands(world2DCommands);
+            renderedWorld2D = true;
+        }
+        camera->End();
     }
 
-    if (!renderedWorld) {
-        ExecuteCommands(worldCommands);
+    if (!renderedWorld2D) {
+        ExecuteCommands(world2DCommands);
     }
 
-    // 6. Render UI commands (always screen space)
+    // 4. Render UI commands (always screen space, on top of everything)
     ExecuteCommands(uiCommands);
 
-    // 7. Clear queues for the next frame
     Clear();
 }
 
@@ -219,33 +245,12 @@ void RenderSystem::Submit(const RenderCommand& cmd) {
     }
 }
 
-void RenderSystem::RegisterWorldRenderer(Renderer* r) {
-    r->renderBucket = RenderBucket::World;
-    r->renderIndex = static_cast<int>(worldRenderers.size());
-    worldRenderers.push_back(r);
+void RenderSystem::Submit(const RenderCommand3D& cmd) {
+    world3DCommands.push_back(cmd);
 }
 
-void RenderSystem::RegisterUIRenderer(Renderer* r) {
-    r->renderBucket = RenderBucket::UI;
-    r->renderIndex = static_cast<int>(uiRenderers.size());
-    uiRenderers.push_back(r);
-}
-
-void RenderSystem::UnregisterFromBucket(Renderer* r, std::vector<Renderer*>& renderers) {
-    const int index = r->renderIndex;
-    Renderer* moved = renderers.back();
-
-    renderers[static_cast<std::size_t>(index)] = moved;
-    moved->renderIndex = index;
-
-    renderers.pop_back();
-
-    r->renderIndex = -1;
-    r->renderBucket = RenderBucket::None;
-}
-
-void RenderSystem::CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>& commands) {
-    activeCommandQueue = &commands;
+void RenderSystem::CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>* commands) {
+    activeCommandQueue = commands;
 
     for (Renderer* r : renderers) {
         if (r && r->IsEnabled()) {
@@ -295,6 +300,84 @@ void RenderSystem::ExecuteCommands(const std::vector<RenderCommand>& cmds) {
             }
         }
     }
+}
+
+void RenderSystem::Execute3DCommands() {
+    if (litMaterial.shader.id == 0) {
+        return;
+    }
+
+    SetShaderValue(litMaterial.shader, lightDirectionLoc, &lightDirection, SHADER_UNIFORM_VEC3);
+
+    for (const RenderCommand3D& cmd : world3DCommands) {
+        const std::size_t index = static_cast<std::size_t>(cmd.mesh);
+        litMaterial.maps[MATERIAL_MAP_DIFFUSE].color = cmd.color;
+        DrawMesh(primitiveMeshes[index], litMaterial, MatrixMultiply(primitivePivots[index], cmd.transform));
+    }
+}
+
+void RenderSystem::SetLightDirection(Vector3 direction) {
+    lightDirection = Vector3Normalize(direction);
+}
+
+namespace {
+// Lambert diffuse from one directional light + a sky/ground hemisphere ambient.
+constexpr const char* LitVertexShader = R"(#version 330
+in vec3 vertexPosition;
+in vec3 vertexNormal;
+uniform mat4 mvp;
+uniform mat4 matNormal;
+out vec3 fragNormal;
+void main() {
+    fragNormal = (matNormal * vec4(vertexNormal, 0.0)).xyz;
+    gl_Position = mvp * vec4(vertexPosition, 1.0);
+}
+)";
+
+constexpr const char* LitFragmentShader = R"(#version 330
+in vec3 fragNormal;
+uniform vec4 colDiffuse;
+uniform vec3 lightDirection;
+out vec4 finalColor;
+void main() {
+    vec3 normal = normalize(fragNormal);
+    float diffuse = max(dot(normal, -lightDirection), 0.0);
+    float hemisphere = 0.5 + 0.5 * normal.y;
+    vec3 color = colDiffuse.rgb * (0.22 + 0.18 * hemisphere + 0.7 * diffuse);
+    finalColor = vec4(color, colDiffuse.a);
+}
+)";
+}
+
+void RenderSystem::Load3DResources() {
+    primitiveMeshes[static_cast<std::size_t>(PrimitiveMesh::Cube)] = GenMeshCube(1.0f, 1.0f, 1.0f);
+    primitiveMeshes[static_cast<std::size_t>(PrimitiveMesh::Sphere)] = GenMeshSphere(0.5f, 16, 24);
+    primitiveMeshes[static_cast<std::size_t>(PrimitiveMesh::Cylinder)] = GenMeshCylinder(0.5f, 1.0f, 24);
+    primitiveMeshes[static_cast<std::size_t>(PrimitiveMesh::Plane)] = GenMeshPlane(1.0f, 1.0f, 1, 1);
+
+    // raylib builds cylinders from y = 0 upward; shift them so every primitive is centered.
+    primitivePivots.fill(MatrixIdentity());
+    primitivePivots[static_cast<std::size_t>(PrimitiveMesh::Cylinder)] = MatrixTranslate(0.0f, -0.5f, 0.0f);
+
+    litMaterial = LoadMaterialDefault();
+    litMaterial.shader = LoadShaderFromMemory(LitVertexShader, LitFragmentShader);
+    lightDirectionLoc = GetShaderLocation(litMaterial.shader, "lightDirection");
+    lightDirection = Vector3Normalize(lightDirection);
+}
+
+void RenderSystem::Unload3DResources() {
+    for (Mesh& mesh : primitiveMeshes) {
+        if (mesh.vaoId != 0) {
+            UnloadMesh(mesh);
+        }
+        mesh = {};
+    }
+
+    if (litMaterial.maps != nullptr) {
+        UnloadMaterial(litMaterial); // also unloads its shader
+    }
+    litMaterial = {};
+    lightDirectionLoc = -1;
 }
 
 void RenderSystem::RecreateTargetTexture() {

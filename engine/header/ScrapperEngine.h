@@ -8,3 +8,5 @@
 #include "Core/TransformSystem/TransformSystem.h"
 
 #include "ScrapperEngine.Rendering.h"
+#include "ScrapperEngine.Physics.h"
+#include "ScrapperEngine.Network.h"

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <raylib.h>
-#include <vector>
+#include <array>
+#include <cstddef>
 #include <string>
+#include <vector>
 
 
 namespace ScrapperEngine {
@@ -15,8 +17,17 @@ enum class RenderType {
 
 enum class RenderBucket {
     None,
-    World,
+    World2D,
+    World3D,
     UI
+};
+
+enum class PrimitiveMesh {
+    Cube,       // 1 x 1 x 1, centered
+    Sphere,     // diameter 1
+    Cylinder,   // diameter 1, height 1 along Y, centered
+    Plane,      // 1 x 1 on XZ, facing +Y
+    Count
 };
 
 struct RenderCommand {
@@ -50,6 +61,13 @@ struct RenderCommand {
     Vector2 pivot = { 0.5f, 0.5f };
 };
 
+// Unit primitive drawn with a world matrix (renderer size is baked into the matrix).
+struct RenderCommand3D {
+    PrimitiveMesh mesh = PrimitiveMesh::Cube;
+    Matrix transform = {};
+    Color color = WHITE;
+};
+
 // Forward declaration to avoid circular dependency
 class Renderer;
 class CameraComponent;
@@ -73,9 +91,11 @@ public:
     Vector2 ScreenToTarget(Vector2 screenPosition) const;
 
     void Submit(const RenderCommand& cmd);
+    void Submit(const RenderCommand3D& cmd);
 
     void Clear() {
-        worldCommands.clear();
+        world2DCommands.clear();
+        world3DCommands.clear();
         uiCommands.clear();
     }
 
@@ -92,10 +112,18 @@ public:
     void SetDefaultFont(Font font) { defaultFont = font; }
     Font GetDefaultFont() const { return defaultFont; }
 
+    void SetClearColor(Color color) { clearColor = color; }
+    // Direction the scene's single directional light travels in (world space).
+    void SetLightDirection(Vector3 direction);
+
 private:
-    std::vector<RenderCommand> worldCommands;
+    static constexpr std::size_t PrimitiveCount = static_cast<std::size_t>(PrimitiveMesh::Count);
+
+    std::vector<RenderCommand> world2DCommands;
+    std::vector<RenderCommand3D> world3DCommands;
     std::vector<RenderCommand> uiCommands;
-    std::vector<Renderer*> worldRenderers;
+    std::vector<Renderer*> world2DRenderers;
+    std::vector<Renderer*> world3DRenderers;
     std::vector<Renderer*> uiRenderers;
     std::vector<CameraComponent*> registeredCameras;
     std::vector<RenderCommand>* activeCommandQueue = nullptr;
@@ -105,6 +133,13 @@ private:
     int targetWidth = 1920;
     int targetHeight = 1080;
     bool initialized = false;
+    Color clearColor = BLACK;
+
+    std::array<Mesh, PrimitiveCount> primitiveMeshes = {};
+    std::array<Matrix, PrimitiveCount> primitivePivots = {};
+    Material litMaterial = {};
+    int lightDirectionLoc = -1;
+    Vector3 lightDirection = { -0.35f, -0.85f, -0.4f };
 
     RenderSystem() = default;
     ~RenderSystem() = default;
@@ -112,13 +147,14 @@ private:
     RenderSystem(const RenderSystem&) = delete;
     RenderSystem& operator=(const RenderSystem&) = delete;
 
-    void RegisterWorldRenderer(Renderer* r);
-    void RegisterUIRenderer(Renderer* r);
-    void UnregisterFromBucket(Renderer* r, std::vector<Renderer*>& renderers);
+    std::vector<Renderer*>* BucketOf(RenderBucket bucket);
 
-    void CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>& commands);
+    void CollectCommands(const std::vector<Renderer*>& renderers, std::vector<RenderCommand>* commands);
     void ExecuteCommands(const std::vector<RenderCommand>& cmds);
+    void Execute3DCommands();
     void RecreateTargetTexture();
+    void Load3DResources();
+    void Unload3DResources();
 };
 
 }
