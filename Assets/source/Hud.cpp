@@ -32,6 +32,6 @@ void Hud::Update(float) {
     const float stability = body ? body.Get<SpringCharacter>().stability : 0.0f;
     status.Get<TextRenderer>().text = TextFormat(
         "%s   stability %.2f   damping x%.2f\n"
-        "click: mouse look  TAB: free mouse  WASD SPACE  LMB/RMB: reach  Q: fall over  ARROWS: drive  E: shove tank",
+        "click: mouse look  TAB: free mouse  WASD SPACE  LMB/RMB: reach & grab  Q: fall over  ARROWS: drive  E: shove tank",
         role.c_str(), stability, GetWorld().Resource<CharacterSpringScale>().damping);
 }

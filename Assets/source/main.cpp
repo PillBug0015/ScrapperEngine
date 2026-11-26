@@ -1,5 +1,6 @@
 #include "FirstPersonCamera.h"
 #include "GameMessages.h"
+#include "GripSync.h"
 #include "Hud.h"
 #include "LocalPlayer.h"
 #include "Scene.h"
@@ -51,6 +52,7 @@ int main(int argc, char** argv) {
     Hud::Create(world, player);
 
     NetSession& session = world.Resource<NetSession>();
+    ListenForGrips(world);
     if (session.IsServer()) {
         TankDrive& drive = scene->tank.AddScript<TankDrive>();
         session.On(GameMessages::Shove, [&drive](ConnectionId, ByteReader&) { drive.Shove(); });
@@ -58,8 +60,14 @@ int main(int argc, char** argv) {
             Vector2 input = { 0.0f, 0.0f };
             if (reader.Read(input)) drive.SetInput(sender, input);
         });
-        session.onConnected = [crew = scene->crew](ConnectionId client) { AssignCrew(crew, client); };
-        session.onDisconnected = [&drive](ConnectionId client) { drive.Forget(client); };
+        session.onConnected = [&world, crew = scene->crew](ConnectionId client) {
+            AssignCrew(crew, client);
+            SendAllGrips(world, client);
+        };
+        session.onDisconnected = [&world, &drive](ConnectionId client) {
+            drive.Forget(client);
+            ReleaseGripsOf(world, client);
+        };
     }
 
     app.Run();

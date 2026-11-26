@@ -14,10 +14,10 @@
 using namespace Scrapper;
 
 namespace {
-GameObject SpawnBox(World& world, Vector3 position, Vector3 size, Color color, JPH::EMotionType motion) {
+GameObject SpawnBox(World& world, Vector3 position, Vector3 size, Color color, JPH::EMotionType motion, float mass = 0.0f) {
     GameObject box = GameObject::Create(world, position);
     box.Add<MeshRenderer>(PrimitiveMesh::Cube, size, color);
-    box.Add<RigidBody>(RigidBody::Make(new JPH::BoxShape(ToJolt(Vector3Scale(size, 0.5f))), motion));
+    box.Add<RigidBody>(RigidBody::Make(new JPH::BoxShape(ToJolt(Vector3Scale(size, 0.5f))), motion, mass));
     return box;
 }
 }
@@ -29,7 +29,7 @@ std::optional<Scene> Scene::Build(World& world) {
 
     for (int i = 0; i < 12; ++i) {
         const Vector3 position = { (i % 3) * 1.2f - 1.2f, 1.0f + i * 1.1f, (i % 2) * 0.5f - 2.5f };
-        SpawnBox(world, position, { 1.0f, 1.0f, 1.0f }, { 210, 150, 80, 255 }, JPH::EMotionType::Dynamic)
+        SpawnBox(world, position, { 1.0f, 1.0f, 1.0f }, { 210, 150, 80, 255 }, JPH::EMotionType::Dynamic, 20.0f) // light enough to haul
             .Add<NetId>(static_cast<std::uint32_t>(100 + i));
     }
 

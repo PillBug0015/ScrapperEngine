@@ -1,5 +1,6 @@
 #include "LocalPlayer.h"
 #include "GameMessages.h"
+#include "Hands.h"
 #include "Tank.h"
 #include "Scrapper/Net/NetSession.h"
 #include "Scrapper/Jolt/RagdollPose.h"
@@ -55,23 +56,22 @@ void LocalPlayer::Look() {
     else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) DisableCursor();
 }
 
-// The head follows the view; a held mouse button sends that hand at the crosshair.
+// The head follows the view; a held mouse button sends that hand at the crosshair, and it grips what it touches.
 void LocalPlayer::Reach() {
     if (!body) return;
-    RagdollPose& pose = body.Get<RagdollPose>();
     const CrewRig& rig = body.Get<CrewRig>();
+    const Vector3 eye = camera.GetPosition();
     const Vector3 view = Vector3RotateByQuaternion({ 0.0f, 0.0f, -1.0f },
         QuaternionMultiply(QuaternionFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yaw), QuaternionFromAxisAngle({ 1.0f, 0.0f, 0.0f }, pitch)));
-    const auto aimAt = [&](PartId part, float distance, bool active) {
-        PoseAim* aim = pose.Aim(part);
-        if (aim == nullptr) return;
-        aim->point = Vector3Add(camera.GetPosition(), Vector3Scale(view, distance));
-        aim->target = active ? 1.0f : 0.0f;
-    };
+
+    if (PoseAim* look = body.Get<RagdollPose>().Aim(rig.head)) {
+        look->point = Vector3Add(eye, Vector3Scale(view, LookDistance));
+        look->target = 1.0f;
+    }
     const bool captured = IsCursorHidden();
-    aimAt(rig.head, LookDistance, true);
-    aimAt(rig.leftArm, ReachDistance, captured && IsMouseButtonDown(MOUSE_BUTTON_LEFT));
-    aimAt(rig.rightArm, ReachDistance, captured && IsMouseButtonDown(MOUSE_BUTTON_RIGHT));
+    const Vector3 reachPoint = Vector3Add(eye, Vector3Scale(view, ReachDistance));
+    UpdateHand(GetWorld(), body, rig.leftArm, captured && IsMouseButtonDown(MOUSE_BUTTON_LEFT), reachPoint);
+    UpdateHand(GetWorld(), body, rig.rightArm, captured && IsMouseButtonDown(MOUSE_BUTTON_RIGHT), reachPoint);
 }
 
 void LocalPlayer::Move() {
