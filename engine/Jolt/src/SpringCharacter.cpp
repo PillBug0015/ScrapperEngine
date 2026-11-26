@@ -40,6 +40,7 @@ constexpr float MaxLegPush = 40.0f;       // m/s^2 on top of gravity: limits lau
 constexpr float MaxLegPull = 15.0f;       // m/s^2 downward: sticks to the ground over small drops
 constexpr float MaxAngularAcceleration = 120.0f;
 constexpr float ProbeRadius = 0.1f;
+constexpr float HoldSlack = 0.1f; // a grip stretched further holds the character back
 
 struct GroundProbe {
     bool hit = false;
@@ -149,17 +150,30 @@ void PressGround(JPH::BodyInterface& bodies, const GroundProbe& ground, float li
     bodies.AddImpulse(ground.body, JPH::Vec3(0.0f, -liftImpulse, 0.0f), ground.point);
 }
 
+// What it holds on to keeps it there: walking away from a stretched grip is cancelled, so letting go
+// takes a force the grip can't hold (and then the hand slips).
+JPH::Vec3 HeldBack(JPH::Vec3 walk, const std::vector<JPH::Vec3>& pulls) {
+    for (const JPH::Vec3& pull : pulls) {
+        const JPH::Vec3 flat = Horizontal(pull);
+        if (pull.Length() < HoldSlack || flat.LengthSq() < 1e-6f) continue;
+        const JPH::Vec3 toward = flat.Normalized();
+        walk -= toward * std::min(0.0f, walk.Dot(toward));
+    }
+    return walk;
+}
+
 // The body floats, so there is no ground friction: standing still on a moving vehicle is the control
 // matching the ground's velocity. A stunned one slides.
-JPH::Vec3 Steering(const SpringCharacter& c, const GroundProbe& ground, const CoreState& core, float deltaTime) {
-    const JPH::Vec3 input = ToJolt(c.moveInput);
+JPH::Vec3 Steering(const SpringCharacter& c, const GroundProbe& ground, const CoreState& core, const std::vector<JPH::Vec3>& pulls,
+                   float deltaTime) {
+    const JPH::Vec3 walk = HeldBack(ToJolt(c.moveInput) * c.moveSpeed, pulls);
     const JPH::Vec3 horizontal = Horizontal(core.velocity);
     if (c.grounded) {
-        const JPH::Vec3 target = input * c.moveSpeed + Horizontal(ground.velocity);
+        const JPH::Vec3 target = walk + Horizontal(ground.velocity);
         return MoveTowards(horizontal, target, c.stability * c.groundAcceleration * deltaTime) - horizontal;
     }
-    if (input.LengthSq() == 0.0f) return JPH::Vec3::sZero();
-    return MoveTowards(horizontal, input * c.moveSpeed, c.stability * c.airAcceleration * deltaTime) - horizontal;
+    if (walk.LengthSq() == 0.0f) return JPH::Vec3::sZero();
+    return MoveTowards(horizontal, walk, c.stability * c.airAcceleration * deltaTime) - horizontal;
 }
 
 // Consumes the request; only a grounded character leaves the ground, and the leg lets go for a moment.
@@ -190,7 +204,7 @@ JPH::Vec3 UprightAcceleration(const SpringCharacter& c, const CharacterSpringSca
 
 // Everything goes to the whole body alike: the springs carry it, the motors only shape it.
 float StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
-                    SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
+                    SpringCharacter& c, StandingOn& standingOn, const std::vector<JPH::Vec3>& pulls, float deltaTime) {
     c.jumpTimer = std::max(0.0f, c.jumpTimer - deltaTime);
     c.stability = UpdateStability(c, deltaTime);
 
@@ -203,7 +217,7 @@ float StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const Ra
     const float gravity = -jolt.System().GetGravity().GetY();
     const float lift = LegAcceleration(c, scale, ground, core, centerHeight, gravity, deltaTime) * deltaTime;
     PressGround(bodies, ground, lift * instance.totalMass);
-    const JPH::Vec3 steering = Steering(c, ground, core, deltaTime);
+    const JPH::Vec3 steering = Steering(c, ground, core, pulls, deltaTime);
     const JPH::Vec3 jump = Jump(c, ground, core); // after steering: it leaves the ground
     const JPH::Vec3 spin = UprightAcceleration(c, scale, asset.At(c.core).rotation, core, deltaTime) * deltaTime;
 

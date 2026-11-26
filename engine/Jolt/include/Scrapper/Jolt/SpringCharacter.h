@@ -31,7 +31,7 @@ struct CharacterSpringScale {
 // Physics-driven character on the entity's Ragdoll ("floating ragdoll"): springs hold its core part
 // up and upright, and it drives the Moving/Airborne/Always layers of the entity's RagdollPose.
 // Stability (0..1) scales all of it together: 1 stands firm, lower wobbles, 0 is limp.
-// The leg pushes back on what it stands on.
+// The leg pushes back on what it stands on, and it won't walk away from what its parts Grip.
 struct SpringCharacter {
     PartId core = RagdollAsset::Root; // the part the springs hold
 

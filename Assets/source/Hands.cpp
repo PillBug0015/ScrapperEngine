@@ -11,6 +11,10 @@ namespace {
 constexpr float ReachedEnough = 0.6f;    // aim weight before the hand starts feeling for a hold
 constexpr float TouchRadius = 0.12f;     // around the hand's tip
 constexpr float MinGripStability = 0.3f; // a stunned body lets go
+constexpr float SlipDistance = 0.4f;     // stretched this far, the hold took more than the grip has
+
+// A hand that slipped stays open until its button is let go, instead of grabbing straight back.
+struct Slipped {};
 
 Vector3 ToWorld(const entt::registry& registry, entt::entity entity, Vector3 local) {
     const WorldTransform pose = Transforms::ComputeWorld(registry, entity);
@@ -46,14 +50,19 @@ void UpdateHand(World& world, GameObject body, PartId arm, bool held, Vector3 re
 
     if (!held || body.Get<SpringCharacter>().stability < MinGripStability) {
         aim->target = 0.0f;
+        registry.remove<Slipped>(hand);
         Release(world, hand);
         return;
     }
     aim->target = 1.0f;
     if (const Grip* grip = registry.try_get<Grip>(hand)) {
-        aim->point = ToWorld(registry, grip->target, grip->targetAnchor); // the arm keeps pointing at the hold
+        const Vector3 hold = ToWorld(registry, grip->target, grip->targetAnchor);
+        aim->point = hold; // the arm keeps pointing at the hold
+        if (Vector3Distance(ToWorld(registry, hand, grip->anchor), hold) < SlipDistance) return;
+        registry.emplace<Slipped>(hand);
+        Release(world, hand);
         return;
     }
     aim->point = reachPoint;
-    if (aim->weight >= ReachedEnough) Grab(world, body, arm, hand);
+    if (aim->weight >= ReachedEnough && !registry.all_of<Slipped>(hand)) Grab(world, body, arm, hand);
 }

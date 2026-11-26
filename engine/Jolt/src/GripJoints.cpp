@@ -14,7 +14,7 @@
 namespace Scrapper {
 namespace GripJoints {
 namespace {
-constexpr float PullFrequency = 6.0f; // Hz: how briskly a grip closes the gap, up to its strength
+constexpr float PullFrequency = 10.0f; // Hz: how briskly a grip closes the gap, up to its strength
 
 bool InWorld(const entt::registry& registry, entt::entity entity) {
     const PhysicsBody* body = registry.valid(entity) ? registry.try_get<PhysicsBody>(entity) : nullptr;
@@ -63,6 +63,19 @@ void Sync(entt::registry& registry, JoltWorld& jolt) {
         const JPH::BodyID target = registry.get<PhysicsBody>(grip.target).id;
         registry.emplace<GripJoint>(entity, MakeJoint(jolt, hand, target, grip), grip.target);
     }
+}
+
+std::vector<JPH::Vec3> Pulls(const entt::registry& registry, JoltWorld& jolt, const std::vector<entt::entity>& parts) {
+    JPH::BodyInterface& bodies = jolt.Bodies();
+    std::vector<JPH::Vec3> pulls;
+    for (entt::entity part : parts) {
+        const Grip* grip = registry.try_get<Grip>(part);
+        if (grip == nullptr || !registry.all_of<GripJoint>(part)) continue;
+        const JPH::RVec3 hand = bodies.GetWorldTransform(registry.get<PhysicsBody>(part).id) * ToJolt(grip->anchor);
+        const JPH::RVec3 hold = bodies.GetWorldTransform(registry.get<PhysicsBody>(grip->target).id) * ToJolt(grip->targetAnchor);
+        pulls.push_back(JPH::Vec3(hold - hand));
+    }
+    return pulls;
 }
 
 void OnDestroyed(entt::registry& registry, entt::entity entity) {

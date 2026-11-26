@@ -5,6 +5,7 @@
 #include "Scrapper/Jolt/SpringCharacter.h"
 #include "Scrapper/Core/Authority.h"
 #include "Scrapper/Core/Lifecycle.h"
+#include "Scrapper/Core/Parts.h"
 #include "Scrapper/Core/Transform.h"
 #include "Scrapper/Core/World.h"
 #include "BodyEntity.h"
@@ -114,8 +115,9 @@ bool IsSimulated(const PhysicsBody& body) {
 void StepCharacters(entt::registry& registry, JoltWorld& jolt, const CharacterSpringScale& scale) {
     for (auto [e, character, ragdoll, instance] : registry.view<SpringCharacter, Ragdoll, RagdollInstance>().each()) {
         if (!RagdollBodies::IsSimulatedHere(registry, e, instance)) continue;
+        const std::vector<JPH::Vec3> pulls = GripJoints::Pulls(registry, jolt, registry.get<Parts>(e).entities);
         const float groundSpeed = StepCharacter(jolt, scale, *ragdoll.asset, instance, character, registry.get_or_emplace<StandingOn>(e),
-                                                JoltWorld::FixedDeltaTime);
+                                                pulls, JoltWorld::FixedDeltaTime);
         if (RagdollPose* pose = registry.try_get<RagdollPose>(e)) FeedPose(*pose, *ragdoll.asset, character, groundSpeed);
     }
 }
