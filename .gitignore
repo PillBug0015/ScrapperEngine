@@ -44,3 +44,6 @@ Thumbs.db
 
 # Local scratch files
 tempCodeRunnerFile.cpp
+
+# Blender backups
+*.blend1
