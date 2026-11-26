@@ -118,83 +118,105 @@ float CenterHeight(const RagdollAsset& asset, PartId core, float hover) {
     return rest.position.y + centerOfMass.GetY() + hover;
 }
 
+// What a step reads from the core part, before it changes anything.
+struct CoreState {
+    JPH::Vec3 velocity;
+    JPH::Vec3 angularVelocity;
+    JPH::Quat rotation;
+    JPH::RVec3 centerOfMass;
+};
+
+CoreState ReadCore(JPH::BodyInterface& bodies, JPH::BodyID core) {
+    return { bodies.GetLinearVelocity(core), bodies.GetAngularVelocity(core), bodies.GetRotation(core), bodies.GetCenterOfMassPosition(core) };
 }
 
-float StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
-                    SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
-    c.jumpTimer = std::max(0.0f, c.jumpTimer - deltaTime);
-    const float stability = c.stability = UpdateStability(c, deltaTime);
+JPH::Vec3 Horizontal(JPH::Vec3Arg v) { return JPH::Vec3(v.GetX(), 0.0f, v.GetZ()); }
 
-    JPH::BodyInterface& bodies = jolt.Bodies();
-    const JPH::BodyID core = instance.ragdoll->GetBodyID(c.core.value);
-    const float centerHeight = CenterHeight(asset, c.core, c.hover);
-    const JPH::Vec3 up = JPH::Vec3::sAxisY();
-    const float gravity = -jolt.System().GetGravity().GetY();
-
-    const JPH::Vec3 velocity = bodies.GetLinearVelocity(core);
-    const JPH::Vec3 angularVelocity = bodies.GetAngularVelocity(core);
-    const JPH::Quat rotation = bodies.GetRotation(core);
-
-    const GroundProbe ground = ProbeGround(jolt, *instance.ragdoll, centerHeight, bodies.GetCenterOfMassPosition(core));
+// Grounded unless just jumped. What it stands on is kept while airborne: a jump inside a moving tank
+// still belongs to the tank.
+void StandOn(SpringCharacter& c, const GroundProbe& ground, StandingOn& standingOn, JPH::BodyInterface& bodies) {
     c.grounded = ground.hit && c.jumpTimer <= 0.0f;
-    if (c.grounded) {
-        // Kept while airborne: a jump inside a moving tank still belongs to the tank.
-        standingOn.entity = bodies.GetMotionType(ground.body) == JPH::EMotionType::Static
-            ? entt::null : ToEntity(bodies.GetUserData(ground.body));
-    }
+    if (!c.grounded) return;
+    standingOn.entity = bodies.GetMotionType(ground.body) == JPH::EMotionType::Static ? entt::null : ToEntity(bodies.GetUserData(ground.body));
+}
 
-    // Changes go to the whole body alike: the springs carry it, the motors only shape it.
-    JPH::Vec3 deltaVelocity = JPH::Vec3::sZero();
+// Holds the core at standing height, carrying gravity while grounded. Weakened by stability, so a stunned
+// character's knees give way.
+float LegAcceleration(const SpringCharacter& c, const CharacterSpringScale& scale, const GroundProbe& ground, const CoreState& core,
+                      float centerHeight, float gravity, float deltaTime) {
+    if (!c.grounded) return 0.0f;
+    const float offset = centerHeight - ground.distance;
+    const float relativeVelocity = core.velocity.GetY() - ground.velocity.GetY();
+    return c.stability * std::clamp(SpringAcceleration(c.leg, scale, offset, relativeVelocity, deltaTime) + gravity,
+                                    -MaxLegPull, gravity + MaxLegPush);
+}
 
-    // 1. Leg: hold the core at standing height, carrying gravity while grounded.
-    //    Weakened by stability, so a stunned character's knees give way.
-    if (c.grounded) {
-        const float offset = centerHeight - ground.distance;
-        const float relativeVelocity = (velocity - ground.velocity).Dot(up);
-        const float acceleration = stability * std::clamp(SpringAcceleration(c.leg, scale, offset, relativeVelocity, deltaTime) + gravity,
-                                                          -MaxLegPull, gravity + MaxLegPush);
-        deltaVelocity += up * (acceleration * deltaTime);
+// Newton's third law: our weight presses on what we stand on.
+void PressGround(JPH::BodyInterface& bodies, const GroundProbe& ground, float liftImpulse) {
+    if (liftImpulse == 0.0f || bodies.GetMotionType(ground.body) != JPH::EMotionType::Dynamic) return;
+    bodies.AddImpulse(ground.body, JPH::Vec3(0.0f, -liftImpulse, 0.0f), ground.point);
+}
 
-        // Newton's third law: our weight presses on what we stand on.
-        if (bodies.GetMotionType(ground.body) == JPH::EMotionType::Dynamic) {
-            bodies.AddImpulse(ground.body, -up * (acceleration * deltaTime * instance.totalMass), ground.point);
-        }
-    }
-
-    // 2. Movement. The body floats, so there is no ground friction: standing still on a
-    //    moving vehicle is the control matching the ground's velocity. A stunned one slides.
+// The body floats, so there is no ground friction: standing still on a moving vehicle is the control
+// matching the ground's velocity. A stunned one slides.
+JPH::Vec3 Steering(const SpringCharacter& c, const GroundProbe& ground, const CoreState& core, float deltaTime) {
     const JPH::Vec3 input = ToJolt(c.moveInput);
-    const JPH::Vec3 horizontal(velocity.GetX(), 0.0f, velocity.GetZ());
-    const JPH::Vec3 groundHorizontal(ground.velocity.GetX(), 0.0f, ground.velocity.GetZ());
+    const JPH::Vec3 horizontal = Horizontal(core.velocity);
     if (c.grounded) {
-        const JPH::Vec3 target = input * c.moveSpeed + groundHorizontal;
-        deltaVelocity += MoveTowards(horizontal, target, stability * c.groundAcceleration * deltaTime) - horizontal;
-
-        if (c.jumpRequested) {
-            const float jumpVelocity = ground.velocity.GetY() + c.jumpSpeed;
-            deltaVelocity += up * (stability * (jumpVelocity - velocity.GetY()));
-            c.jumpTimer = JumpLegOffSeconds;
-            c.grounded = false;
-        }
-    } else if (input.LengthSq() > 0.0f) {
-        deltaVelocity += MoveTowards(horizontal, input * c.moveSpeed, stability * c.airAcceleration * deltaTime) - horizontal;
+        const JPH::Vec3 target = input * c.moveSpeed + Horizontal(ground.velocity);
+        return MoveTowards(horizontal, target, c.stability * c.groundAcceleration * deltaTime) - horizontal;
     }
-    c.jumpRequested = false;
+    if (input.LengthSq() == 0.0f) return JPH::Vec3::sZero();
+    return MoveTowards(horizontal, input * c.moveSpeed, c.stability * c.airAcceleration * deltaTime) - horizontal;
+}
 
-    // 3. Upright: one spring on all three axes towards the core's rest orientation, turned to facingYaw.
-    //    It turns the whole body around its center of mass: on the core alone the limbs would outweigh it.
-    JPH::Quat error = JPH::Quat::sRotation(up, c.facingYaw) * ToJolt(asset.At(c.core).rotation) * rotation.Conjugated();
+// Consumes the request; only a grounded character leaves the ground, and the leg lets go for a moment.
+JPH::Vec3 Jump(SpringCharacter& c, const GroundProbe& ground, const CoreState& core) {
+    const bool jumps = c.jumpRequested && c.grounded;
+    c.jumpRequested = false;
+    if (!jumps) return JPH::Vec3::sZero();
+    c.jumpTimer = JumpLegOffSeconds;
+    c.grounded = false;
+    const float jumpVelocity = ground.velocity.GetY() + c.jumpSpeed;
+    return JPH::Vec3(0.0f, c.stability * (jumpVelocity - core.velocity.GetY()), 0.0f);
+}
+
+// One spring on all three axes towards the core's rest orientation, turned to facingYaw.
+JPH::Vec3 UprightAcceleration(const SpringCharacter& c, const CharacterSpringScale& scale, Quaternion rest, const CoreState& core,
+                              float deltaTime) {
+    JPH::Quat error = JPH::Quat::sRotation(JPH::Vec3::sAxisY(), c.facingYaw) * ToJolt(rest) * core.rotation.Conjugated();
     if (error.GetW() < 0.0f) error = -error; // shortest way round
 
     JPH::Vec3 axis;
     float angle = 0.0f;
     error.GetAxisAngle(axis, angle);
+    const JPH::Vec3 acceleration = c.stability * SpringAcceleration(c.upright, scale, axis * angle, core.angularVelocity, deltaTime);
+    const float length = acceleration.Length();
+    return length > MaxAngularAcceleration ? acceleration * (MaxAngularAcceleration / length) : acceleration;
+}
+}
 
-    JPH::Vec3 angularAcceleration = stability * SpringAcceleration(c.upright, scale, axis * angle, angularVelocity, deltaTime);
-    const float length = angularAcceleration.Length();
-    if (length > MaxAngularAcceleration) angularAcceleration *= MaxAngularAcceleration / length;
-    RagdollBodies::AddWholeBodyVelocity(jolt, instance, deltaVelocity, angularAcceleration * deltaTime);
-    return (horizontal - groundHorizontal).Length();
+// Everything goes to the whole body alike: the springs carry it, the motors only shape it.
+float StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
+                    SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
+    c.jumpTimer = std::max(0.0f, c.jumpTimer - deltaTime);
+    c.stability = UpdateStability(c, deltaTime);
+
+    JPH::BodyInterface& bodies = jolt.Bodies();
+    const CoreState core = ReadCore(bodies, instance.ragdoll->GetBodyID(c.core.value));
+    const float centerHeight = CenterHeight(asset, c.core, c.hover);
+    const GroundProbe ground = ProbeGround(jolt, *instance.ragdoll, centerHeight, core.centerOfMass);
+    StandOn(c, ground, standingOn, bodies);
+
+    const float gravity = -jolt.System().GetGravity().GetY();
+    const float lift = LegAcceleration(c, scale, ground, core, centerHeight, gravity, deltaTime) * deltaTime;
+    PressGround(bodies, ground, lift * instance.totalMass);
+    const JPH::Vec3 steering = Steering(c, ground, core, deltaTime);
+    const JPH::Vec3 jump = Jump(c, ground, core); // after steering: it leaves the ground
+    const JPH::Vec3 spin = UprightAcceleration(c, scale, asset.At(c.core).rotation, core, deltaTime) * deltaTime;
+
+    RagdollBodies::AddWholeBodyVelocity(jolt, instance, JPH::Vec3(0.0f, lift, 0.0f) + steering + jump, spin);
+    return (Horizontal(core.velocity) - Horizontal(ground.velocity)).Length();
 }
 
 void FeedPose(RagdollPose& pose, const RagdollAsset& asset, const SpringCharacter& character, float groundSpeed) {
