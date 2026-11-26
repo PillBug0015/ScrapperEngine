@@ -15,7 +15,7 @@ GameObject SpawnCrewMember(World& world, const CrewBody& body, std::uint32_t net
     GameObject crew = GameObject::Create(world, feet);
     crew.Add<NetId>(netId);
     crew.Add<SpringCharacter>();
-    crew.Add<RagdollPose>(RagdollPose{ body.layers });
+    crew.Add<RagdollPose>(RagdollPose{ body.layers, body.aims });
     Ragdolls::Add(world.Registry(), crew.Entity(), body.asset);
 
     CrewRig& rig = crew.Add<CrewRig>(CrewRig{ body.head, body.leftArm, body.rightArm });

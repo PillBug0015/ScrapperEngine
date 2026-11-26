@@ -16,6 +16,7 @@ struct CrewBody {
     Scrapper::PartId leftArm;
     Scrapper::PartId rightArm;
     std::vector<Scrapper::PoseLayer> layers;
+    std::vector<Scrapper::PoseAim> aims; // head looks forward, arms reach along their length
 };
 
 std::optional<CrewBody> MakeCrewBody();

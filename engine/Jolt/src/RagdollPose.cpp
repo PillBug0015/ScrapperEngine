@@ -22,10 +22,19 @@ std::optional<std::vector<PoseLayer>> ResolveLayers(const RagdollAsset& asset, c
 }
 
 namespace {
-void Advance(PoseLayer& layer, float deltaTime) {
-    const float step = layer.fadeSeconds > 0.0f ? deltaTime / layer.fadeSeconds : 1.0f;
-    layer.weight += Clamp(layer.target - layer.weight, -step, step);
-    layer.time += deltaTime * layer.pace;
+float Ease(float weight, float target, float fadeSeconds, float deltaTime) {
+    const float step = fadeSeconds > 0.0f ? deltaTime / fadeSeconds : 1.0f;
+    return weight + Clamp(target - weight, -step, step);
+}
+
+// The rotation from the parent that points the aim's axis at its point. Parts rest unrotated,
+// so the parent's frame is the rest frame.
+Quaternion Aimed(JPH::BodyInterface& bodies, const RagdollAsset& asset, const RagdollInstance& instance, const PoseAim& aim) {
+    const PartId parent = *asset.At(aim.part).parent;
+    const JPH::Quat parentRotation = bodies.GetRotation(instance.ragdoll->GetBodyID(parent.value));
+    const JPH::Vec3 toPoint(ToJoltR(aim.point) - bodies.GetPosition(instance.ragdoll->GetBodyID(aim.part.value)));
+    const JPH::Vec3 direction = parentRotation.Conjugated() * toPoint.NormalizedOr(ToJolt(aim.axis));
+    return ToRaylib(JPH::Quat::sFromTo(ToJolt(aim.axis), direction));
 }
 
 Quaternion Blend(const RagdollAsset& asset, const RagdollPose& pose, PartId part) {
@@ -46,8 +55,12 @@ void Drive(JPH::SwingTwistConstraint& joint, Quaternion target, float torque) {
 }
 }
 
-void DrivePose(JPH::BodyInterface&, const RagdollAsset& asset, RagdollInstance& instance, RagdollPose& pose, float deltaTime) {
-    for (PoseLayer& layer : pose.layers) Advance(layer, deltaTime);
+void DrivePose(JPH::BodyInterface& bodies, const RagdollAsset& asset, RagdollInstance& instance, RagdollPose& pose, float deltaTime) {
+    for (PoseLayer& layer : pose.layers) {
+        layer.weight = Ease(layer.weight, layer.target, layer.fadeSeconds, deltaTime);
+        layer.time += deltaTime * layer.pace;
+    }
+    for (PoseAim& aim : pose.aims) aim.weight = Ease(aim.weight, aim.target, aim.fadeSeconds, deltaTime);
 
     for (std::size_t i = 0; i < asset.parts.size(); ++i) {
         const int index = asset.settings->GetConstraintIndexForBodyIndex(static_cast<int>(i));
@@ -55,7 +68,10 @@ void DrivePose(JPH::BodyInterface&, const RagdollAsset& asset, RagdollInstance& 
         if (constraint == nullptr || constraint->GetSubType() != JPH::EConstraintSubType::SwingTwist) continue;
 
         const PartId part{ static_cast<std::uint16_t>(i) };
-        Drive(static_cast<JPH::SwingTwistConstraint&>(*constraint), Blend(asset, pose, part), asset.motorTorque * pose.strength);
+        Quaternion target = Blend(asset, pose, part);
+        const PoseAim* aim = pose.Aim(part);
+        if (aim != nullptr && aim->weight > 0.0f) target = QuaternionSlerp(target, Aimed(bodies, asset, instance, *aim), aim->weight);
+        Drive(static_cast<JPH::SwingTwistConstraint&>(*constraint), target, asset.motorTorque * pose.strength);
     }
 }
 

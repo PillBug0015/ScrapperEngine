@@ -2,6 +2,7 @@
 #include "GameMessages.h"
 #include "Tank.h"
 #include "Scrapper/Net/NetSession.h"
+#include "Scrapper/Jolt/RagdollPose.h"
 #include "Scrapper/ScriptEngine/ForJolt.h"
 
 #include <cmath>
@@ -11,6 +12,8 @@ using namespace Scrapper;
 namespace {
 constexpr float MouseSensitivity = 0.0025f; // radians per pixel
 constexpr float MaxPitch = 1.45f;
+constexpr float ReachDistance = 1.0f; // from the eye: the hands go for what the crosshair is on
+constexpr float LookDistance = 10.0f;
 
 Vector3 Flat(float yaw, float forward, float right) {
     const Vector3 f = { -std::sin(yaw), 0.0f, -std::cos(yaw) };
@@ -28,6 +31,7 @@ float Axis(int positive, int negative) {
 void LocalPlayer::Update(float) {
     TakeBody(FindLocalCrew(crew, GetWorld().Resource<NetSession>()));
     Look();
+    Reach();
     Move();
     Drive();
 }
@@ -49,6 +53,25 @@ void LocalPlayer::Look() {
     }
     if (IsKeyPressed(KEY_TAB)) EnableCursor();
     else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) DisableCursor();
+}
+
+// The head follows the view; a held mouse button sends that hand at the crosshair.
+void LocalPlayer::Reach() {
+    if (!body) return;
+    RagdollPose& pose = body.Get<RagdollPose>();
+    const CrewRig& rig = body.Get<CrewRig>();
+    const Vector3 view = Vector3RotateByQuaternion({ 0.0f, 0.0f, -1.0f },
+        QuaternionMultiply(QuaternionFromAxisAngle({ 0.0f, 1.0f, 0.0f }, yaw), QuaternionFromAxisAngle({ 1.0f, 0.0f, 0.0f }, pitch)));
+    const auto aimAt = [&](PartId part, float distance, bool active) {
+        PoseAim* aim = pose.Aim(part);
+        if (aim == nullptr) return;
+        aim->point = Vector3Add(camera.GetPosition(), Vector3Scale(view, distance));
+        aim->target = active ? 1.0f : 0.0f;
+    };
+    const bool captured = IsCursorHidden();
+    aimAt(rig.head, LookDistance, true);
+    aimAt(rig.leftArm, ReachDistance, captured && IsMouseButtonDown(MOUSE_BUTTON_LEFT));
+    aimAt(rig.rightArm, ReachDistance, captured && IsMouseButtonDown(MOUSE_BUTTON_RIGHT));
 }
 
 void LocalPlayer::Move() {

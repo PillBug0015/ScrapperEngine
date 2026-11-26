@@ -32,8 +32,8 @@ RagdollDesc Body() {
         { Part::Pelvis, "",          { 0.0f, 0.90f, 0.0f },    { 0.0f, 1.00f, 0.0f },    0.15f, 12.0f },
         { Part::Torso,  Part::Pelvis, { 0.0f, 1.02f, 0.0f },    { 0.0f, 1.34f, 0.0f },    0.18f, 24.0f, 35.0f, 30.0f },
         { Part::Head,   Part::Torso,  { 0.0f, 1.52f, 0.0f },    { 0.0f, 1.60f, 0.0f },    0.12f, 5.0f, 40.0f, 60.0f },
-        { Part::ArmL,   Part::Torso,  { -0.25f, 1.32f, 0.0f },  { -0.29f, 0.82f, 0.0f },  0.065f, 4.0f, 110.0f, 45.0f },
-        { Part::ArmR,   Part::Torso,  { 0.25f, 1.32f, 0.0f },   { 0.29f, 0.82f, 0.0f },   0.065f, 4.0f, 110.0f, 45.0f },
+        { Part::ArmL,   Part::Torso,  { -0.25f, 1.32f, 0.0f },  { -0.29f, 0.82f, 0.0f },  0.065f, 4.0f, 165.0f, 45.0f },
+        { Part::ArmR,   Part::Torso,  { 0.25f, 1.32f, 0.0f },   { 0.29f, 0.82f, 0.0f },   0.065f, 4.0f, 165.0f, 45.0f },
         { Part::LegL,   Part::Pelvis, { -0.11f, 0.90f, 0.0f },  { -0.11f, 0.10f, 0.0f },  0.09f, 9.0f, 70.0f, 15.0f },
         { Part::LegR,   Part::Pelvis, { 0.11f, 0.90f, 0.0f },   { 0.11f, 0.10f, 0.0f },   0.09f, 9.0f, 70.0f, 15.0f },
     };
@@ -98,5 +98,11 @@ std::optional<CrewBody> MakeCrewBody() {
         std::fprintf(stderr, "[Game] crew body is missing a part or layer the game uses\n");
         return std::nullopt;
     }
-    return CrewBody{ std::move(asset), *head, *leftArm, *rightArm, std::move(*layers) };
+    // Arms reach along themselves; the head points its face (-Z at rest).
+    std::vector<PoseAim> aims = {
+        { *leftArm, asset->At(*leftArm).axis, 0.12f },
+        { *rightArm, asset->At(*rightArm).axis, 0.12f },
+        { *head, { 0.0f, 0.0f, -1.0f }, 0.2f },
+    };
+    return CrewBody{ std::move(asset), *head, *leftArm, *rightArm, std::move(*layers), std::move(aims) };
 }

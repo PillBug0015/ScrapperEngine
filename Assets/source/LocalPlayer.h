@@ -26,6 +26,7 @@ private:
 
     void TakeBody(Scrapper::GameObject next);
     void Look();
+    void Reach();
     void Move();
     void Drive();
 };
