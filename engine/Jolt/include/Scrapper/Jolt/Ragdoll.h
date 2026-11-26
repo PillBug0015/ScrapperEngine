@@ -58,6 +58,7 @@ struct RagdollAsset {
         Vector3 position = { 0.0f, 0.0f, 0.0f }; // rest pose, character space, lowest point on y = 0
         Quaternion rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
         Vector3 axis = { 0.0f, -1.0f, 0.0f };     // along the part at rest, from its joint
+        Vector3 tip = { 0.0f, 0.0f, 0.0f };       // its far end (`to`), in part space
         std::shared_ptr<const ModelAsset> model; // the part's collision shape as a mesh, in part space
     };
     struct Clip {
