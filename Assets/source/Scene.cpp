@@ -9,6 +9,8 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
+#include <cstdio>
+
 using namespace Scrapper;
 
 namespace {
@@ -47,14 +49,17 @@ std::optional<Scene> Scene::Build(World& world) {
     if (!body) return std::nullopt;
 
     // Three crew start at the tank's stations, the fourth outside by the step.
-    const auto station = [&](const char* name) {
-        const ModelMarker* marker = model->FindMarker(name);
-        return Vector3Add(tankPosition, marker != nullptr ? marker->position : Vector3{ 0.0f, 1.0f, 0.0f });
-    };
+    const ModelMarker* driver = model->FindMarker("STATION_Driver");
+    const ModelMarker* gunner = model->FindMarker("STATION_Gunner");
+    const ModelMarker* engine = model->FindMarker("STATION_Engine");
+    if (driver == nullptr || gunner == nullptr || engine == nullptr) {
+        std::fprintf(stderr, "[Game] %s is missing a STATION_ marker\n", model->path.c_str());
+        return std::nullopt;
+    }
     out.crew = {
-        SpawnCrewMember(world, *body, 10, station("STATION_Driver"), Color{ 200, 60, 60, 255 }),
-        SpawnCrewMember(world, *body, 11, station("STATION_Gunner"), Color{ 60, 110, 210, 255 }),
-        SpawnCrewMember(world, *body, 12, station("STATION_Engine"), Color{ 230, 190, 50, 255 }),
+        SpawnCrewMember(world, *body, 10, Vector3Add(tankPosition, driver->position), Color{ 200, 60, 60, 255 }),
+        SpawnCrewMember(world, *body, 11, Vector3Add(tankPosition, gunner->position), Color{ 60, 110, 210, 255 }),
+        SpawnCrewMember(world, *body, 12, Vector3Add(tankPosition, engine->position), Color{ 230, 190, 50, 255 }),
         SpawnCrewMember(world, *body, 13, Vector3Add(tankPosition, { -3.2f, 0.0f, 0.0f }), Color{ 70, 170, 90, 255 }),
     };
     return out;
