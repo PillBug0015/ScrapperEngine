@@ -21,6 +21,7 @@
 namespace Scrapper {
 using PartId = TypedIndex<struct RagdollPartTag>;
 using ClipId = TypedIndex<struct RagdollClipTag>;
+using MaskId = TypedIndex<struct RagdollMaskTag>;
 
 // One body of a ragdoll: a capsule from `from` to `to`, hinged to its parent at `from`.
 // Character space: feet near y = 0, facing -Z, every part at rest unrotated.
@@ -35,8 +36,15 @@ struct RagdollPartDesc {
     float twistDegrees = 20.0f; // how far it turns around the part
 };
 
+// A named group of parts for clip layers: each root part and everything below it.
+struct RagdollMaskDesc {
+    std::string name;
+    std::vector<std::string> roots;
+};
+
 struct RagdollDesc {
     std::vector<RagdollPartDesc> parts;
+    std::vector<RagdollMaskDesc> masks;
     float motorTorque = 300.0f;   // Nm per joint at full stability; weak motors get stuck on things
     float motorFrequency = 10.0f; // Hz: how stiffly the joints chase their clip pose
 };
@@ -55,9 +63,14 @@ struct RagdollAsset {
         std::string name;
         float duration = 1.0f;
         bool loop = true;
+        float stride = 0.0f;
         std::vector<std::vector<RagdollClip::Key>> keysByPart;
 
         Quaternion Sample(PartId part, float time) const; // relative to the parent; rest when the part has no keys
+    };
+    struct Mask {
+        std::string name;
+        std::vector<float> weightByPart; // 1 inside, 0 outside
     };
     static constexpr PartId Root{ 0 };
 
@@ -65,15 +78,18 @@ struct RagdollAsset {
     JPH::Ref<JPH::RagdollSettings> settings;
     std::vector<Part> parts; // in PartId order, Root first
     std::vector<Clip> clips; // in ClipId order
+    std::vector<Mask> masks; // in MaskId order
     float motorTorque = 0.0f;
 
     const Part& At(PartId id) const { return parts[id.value]; }
     const Clip& At(ClipId id) const { return clips[id.value]; }
+    const Mask& At(MaskId id) const { return masks[id.value]; }
     std::optional<PartId> FindPart(std::string_view name) const;
     std::optional<ClipId> FindClip(std::string_view name) const;
+    std::optional<MaskId> FindMask(std::string_view name) const;
 };
 
-// nullptr (and a log line) when the description doesn't hold together, e.g. a clip names a part it doesn't have.
+// nullptr (and a log line) when the description doesn't hold together, e.g. a clip or mask names a part it doesn't have.
 std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, const std::vector<RagdollClip>& clips);
 
 // Authored: the entity's body is this ragdoll. Give it one through Ragdolls::Add.

@@ -24,6 +24,7 @@ struct RagdollClip {
     float duration = 1.0f;
     bool loop = true;
     std::vector<Track> tracks;
+    float stride = 0.0f; // meters walked per loop, for layers paced by movement
 };
 
 }

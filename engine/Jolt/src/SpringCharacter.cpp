@@ -10,7 +10,6 @@
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Constraints/SwingTwistConstraint.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <algorithm>
@@ -119,40 +118,10 @@ float CenterHeight(const RagdollAsset& asset, PartId core, float hover) {
     return rest.position.y + centerOfMass.GetY() + hover;
 }
 
-// Idle, blended into walk by speed and into air off the ground; the motors chase it as hard as stability allows.
-void DrivePose(const RagdollAsset& asset, RagdollInstance& instance, SpringCharacter& c, float speed, float stability, float deltaTime) {
-    constexpr float AirBlendRate = 6.0f; // per second
-
-    const RagdollAsset::Clip* idle = c.idleClip ? &asset.At(*c.idleClip) : nullptr;
-    const RagdollAsset::Clip* walk = c.walkClip ? &asset.At(*c.walkClip) : nullptr;
-    const RagdollAsset::Clip* air = c.airClip ? &asset.At(*c.airClip) : nullptr;
-    const float walkBlend = walk != nullptr && c.walkClipSpeed > 0.0f ? Clamp(speed / c.walkClipSpeed, 0.0f, 1.0f) : 0.0f;
-    c.clock += deltaTime;
-    if (walkBlend > 0.0f) c.walkPhase += deltaTime * speed / c.walkClipSpeed; // stride follows the ground speed
-    c.airBlend = Clamp(c.airBlend + (c.grounded ? -1.0f : 1.0f) * AirBlendRate * deltaTime, 0.0f, air != nullptr ? 1.0f : 0.0f);
-
-    for (std::size_t i = 0; i < asset.parts.size(); ++i) {
-        const int index = asset.settings->GetConstraintIndexForBodyIndex(static_cast<int>(i));
-        JPH::TwoBodyConstraint* constraint = index >= 0 ? instance.ragdoll->GetConstraint(index) : nullptr;
-        if (constraint == nullptr || constraint->GetSubType() != JPH::EConstraintSubType::SwingTwist) continue;
-
-        const PartId part{ static_cast<std::uint16_t>(i) };
-        Quaternion target = idle != nullptr ? idle->Sample(part, c.clock) : QuaternionIdentity();
-        if (walkBlend > 0.0f) target = QuaternionSlerp(target, walk->Sample(part, c.walkPhase), walkBlend);
-        if (c.airBlend > 0.0f) target = QuaternionSlerp(target, air->Sample(part, c.clock), c.airBlend);
-
-        auto& joint = static_cast<JPH::SwingTwistConstraint&>(*constraint);
-        joint.GetSwingMotorSettings().SetTorqueLimit(asset.motorTorque * stability);
-        joint.GetTwistMotorSettings().SetTorqueLimit(asset.motorTorque * stability);
-        joint.SetSwingMotorState(JPH::EMotorState::Position);
-        joint.SetTwistMotorState(JPH::EMotorState::Position);
-        joint.SetTargetOrientationBS(ToJolt(target));
-    }
-}
 }
 
-void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
-                   SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
+float StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
+                    SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
     c.jumpTimer = std::max(0.0f, c.jumpTimer - deltaTime);
     const float stability = c.stability = UpdateStability(c, deltaTime);
 
@@ -225,9 +194,32 @@ void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const Rag
     const float length = angularAcceleration.Length();
     if (length > MaxAngularAcceleration) angularAcceleration *= MaxAngularAcceleration / length;
     RagdollBodies::AddWholeBodyVelocity(jolt, instance, deltaVelocity, angularAcceleration * deltaTime);
+    return (horizontal - groundHorizontal).Length();
+}
 
-    // 4. Limbs.
-    DrivePose(asset, instance, c, (horizontal - groundHorizontal).Length(), stability, deltaTime);
+void FeedPose(RagdollPose& pose, const RagdollAsset& asset, const SpringCharacter& character, float groundSpeed) {
+    for (PoseLayer& layer : pose.layers) {
+        switch (layer.driver) {
+            case PoseDriver::Manual:
+                break;
+            case PoseDriver::Always:
+                layer.target = 1.0f;
+                layer.pace = 1.0f;
+                break;
+            case PoseDriver::Moving: {
+                const RagdollAsset::Clip& clip = asset.At(layer.clip);
+                const float strideSpeed = clip.duration > 0.0f ? clip.stride / clip.duration : 0.0f;
+                layer.pace = strideSpeed > 0.0f ? groundSpeed / strideSpeed : 0.0f; // feet keep up with the ground
+                layer.target = Clamp(layer.pace, 0.0f, 1.0f);
+                break;
+            }
+            case PoseDriver::Airborne:
+                layer.target = character.grounded ? 0.0f : 1.0f;
+                layer.pace = 1.0f;
+                break;
+        }
+    }
+    pose.strength = character.stability;
 }
 
 }

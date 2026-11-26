@@ -20,6 +20,8 @@ struct RagdollInstance {
 };
 
 namespace RagdollBodies {
+// Created, in the world, and owned by this peer: its parts are dynamic here.
+bool IsSimulatedHere(const entt::registry& registry, entt::entity entity, const RagdollInstance& instance);
 void CreatePending(entt::registry& registry, JoltWorld& jolt);
 void Reconcile(entt::registry& registry);     // in the world unless the entity is Disabled
 void TeleportMoved(entt::registry& registry, JoltWorld& jolt); // game code moved the entity: the parts go along

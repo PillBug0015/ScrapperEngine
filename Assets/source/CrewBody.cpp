@@ -19,6 +19,11 @@ constexpr const char* Idle = "idle";
 constexpr const char* Walk = "walk";
 constexpr const char* Air = "air";
 }
+namespace Mask {
+constexpr const char* Body = "body";
+constexpr const char* Upper = "upper";
+constexpr const char* Lower = "lower";
+}
 
 // Character space: feet on the ground, facing -Z, right is +X. Each limb hangs from its joint at `from`.
 RagdollDesc Body() {
@@ -31,6 +36,11 @@ RagdollDesc Body() {
         { Part::ArmR,   Part::Torso,  { 0.25f, 1.32f, 0.0f },   { 0.29f, 0.82f, 0.0f },   0.065f, 4.0f, 110.0f, 45.0f },
         { Part::LegL,   Part::Pelvis, { -0.11f, 0.90f, 0.0f },  { -0.11f, 0.10f, 0.0f },  0.09f, 9.0f, 70.0f, 15.0f },
         { Part::LegR,   Part::Pelvis, { 0.11f, 0.90f, 0.0f },   { 0.11f, 0.10f, 0.0f },   0.09f, 9.0f, 70.0f, 15.0f },
+    };
+    body.masks = {
+        { Mask::Body, { Part::Pelvis } },
+        { Mask::Upper, { Part::Torso } },
+        { Mask::Lower, { Part::LegL, Part::LegR } },
     };
     return body;
 }
@@ -52,7 +62,7 @@ RagdollClip Walk() {
         { Part::ArmR,  { { 0.0f, { 25, 0, 6 } }, { 0.5f, { -25, 0, 6 } }, { 1.0f, { 25, 0, 6 } } } },
         { Part::LegL,  { { 0.0f, { 30, 0, 0 } }, { 0.5f, { -30, 0, 0 } }, { 1.0f, { 30, 0, 0 } } } },
         { Part::LegR,  { { 0.0f, { -30, 0, 0 } }, { 0.5f, { 30, 0, 0 } }, { 1.0f, { -30, 0, 0 } } } },
-    } };
+    }, 1.5f };
 }
 
 // Arms thrown up and flapping, legs pedalling.
@@ -65,6 +75,15 @@ RagdollClip Air() {
         { Part::LegR,  { { 0.0f, { -10, 0, 0 } }, { 0.3f, { 15, 0, 0 } }, { 0.6f, { -10, 0, 0 } } } },
     } };
 }
+
+// Blended in order: idle underneath, walk over it by speed, air over both off the ground.
+std::vector<PoseLayerDesc> Layers() {
+    return {
+        { Clip::Idle, Mask::Body, PoseDriver::Always },
+        { Clip::Walk, Mask::Body, PoseDriver::Moving },
+        { Clip::Air, Mask::Body, PoseDriver::Airborne, 1.0f / 6.0f },
+    };
+}
 }
 
 std::optional<CrewBody> MakeCrewBody() {
@@ -72,12 +91,10 @@ std::optional<CrewBody> MakeCrewBody() {
     if (asset == nullptr) return std::nullopt;
 
     const std::optional<PartId> head = asset->FindPart(Part::Head);
-    const std::optional<ClipId> idle = asset->FindClip(Clip::Idle);
-    const std::optional<ClipId> walk = asset->FindClip(Clip::Walk);
-    const std::optional<ClipId> air = asset->FindClip(Clip::Air);
-    if (!head || !idle || !walk || !air) {
-        std::fprintf(stderr, "[Game] crew body is missing a part or clip the game uses\n");
+    std::optional<std::vector<PoseLayer>> layers = ResolveLayers(*asset, Layers());
+    if (!head || !layers) {
+        std::fprintf(stderr, "[Game] crew body is missing a part or layer the game uses\n");
         return std::nullopt;
     }
-    return CrewBody{ std::move(asset), *head, *idle, *walk, *air };
+    return CrewBody{ std::move(asset), *head, std::move(*layers) };
 }

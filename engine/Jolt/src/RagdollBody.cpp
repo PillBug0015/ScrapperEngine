@@ -75,6 +75,10 @@ void Create(entt::registry& registry, JoltWorld& jolt, entt::entity entity) {
 }
 }
 
+bool IsSimulatedHere(const entt::registry& registry, entt::entity entity, const RagdollInstance& instance) {
+    return instance.ragdoll != nullptr && instance.inWorld && !registry.all_of<RemoteAuthority>(entity);
+}
+
 void CreatePending(entt::registry& registry, JoltWorld& jolt) {
     std::vector<entt::entity> pending;
     for (entt::entity e : registry.view<Ragdoll, Parts, LocalTransform>(entt::exclude<RagdollInstance>)) pending.push_back(e);
@@ -141,7 +145,7 @@ void AddWholeBodyImpulse(JoltWorld& jolt, const RagdollInstance& instance, JPH::
 
 void ApplyCommands(entt::registry& registry, JoltWorld& jolt, bool includeImpulses) {
     for (auto [entity, instance, commands] : registry.view<RagdollInstance, PhysicsCommands>().each()) {
-        if (instance.ragdoll == nullptr || !instance.inWorld || registry.all_of<RemoteAuthority>(entity)) continue;
+        if (!IsSimulatedHere(registry, entity, instance)) continue;
         JPH::Vec3 linear = ToJolt(commands.force) * JoltWorld::FixedDeltaTime;
         JPH::Vec3 angular = ToJolt(commands.torque) * JoltWorld::FixedDeltaTime;
         if (includeImpulses) {
@@ -155,7 +159,7 @@ void ApplyCommands(entt::registry& registry, JoltWorld& jolt, bool includeImpuls
 
 void FollowRoots(entt::registry& registry, JoltWorld& jolt) {
     for (auto [entity, instance] : registry.view<RagdollInstance>().each()) {
-        if (instance.ragdoll == nullptr || !instance.inWorld || registry.all_of<RemoteAuthority>(entity)) continue;
+        if (!IsSimulatedHere(registry, entity, instance)) continue;
         JPH::RVec3 position;
         JPH::Quat rotation;
         jolt.Bodies().GetPositionAndRotation(instance.ragdoll->GetBodyID(0), position, rotation);

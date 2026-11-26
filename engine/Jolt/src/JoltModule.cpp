@@ -9,6 +9,7 @@
 #include "Scrapper/Core/World.h"
 #include "BodyEntity.h"
 #include "CharacterStep.h"
+#include "PoseDrive.h"
 #include "RagdollBody.h"
 
 #include <Jolt/Physics/Body/Body.h>
@@ -111,8 +112,16 @@ bool IsSimulated(const PhysicsBody& body) {
 
 void StepCharacters(entt::registry& registry, JoltWorld& jolt, const CharacterSpringScale& scale) {
     for (auto [e, character, ragdoll, instance] : registry.view<SpringCharacter, Ragdoll, RagdollInstance>().each()) {
-        if (instance.ragdoll == nullptr || !instance.inWorld || registry.all_of<RemoteAuthority>(e)) continue;
-        StepCharacter(jolt, scale, *ragdoll.asset, instance, character, registry.get_or_emplace<StandingOn>(e), JoltWorld::FixedDeltaTime);
+        if (!RagdollBodies::IsSimulatedHere(registry, e, instance)) continue;
+        const float groundSpeed = StepCharacter(jolt, scale, *ragdoll.asset, instance, character, registry.get_or_emplace<StandingOn>(e),
+                                                JoltWorld::FixedDeltaTime);
+        if (RagdollPose* pose = registry.try_get<RagdollPose>(e)) FeedPose(*pose, *ragdoll.asset, character, groundSpeed);
+    }
+}
+
+void DrivePoses(entt::registry& registry) {
+    for (auto [e, ragdoll, instance, pose] : registry.view<Ragdoll, RagdollInstance, RagdollPose>().each()) {
+        if (RagdollBodies::IsSimulatedHere(registry, e, instance)) DrivePose(*ragdoll.asset, instance, pose, JoltWorld::FixedDeltaTime);
     }
 }
 
@@ -149,6 +158,7 @@ void Simulate(World& world, float deltaTime) {
         }
         RagdollBodies::ApplyCommands(registry, jolt, step == 0); // impulses once per frame, forces every step
         StepCharacters(registry, jolt, world.Resource<CharacterSpringScale>());
+        DrivePoses(registry);
 
         jolt.Update(JoltWorld::FixedDeltaTime);
         jolt.accumulator -= JoltWorld::FixedDeltaTime;

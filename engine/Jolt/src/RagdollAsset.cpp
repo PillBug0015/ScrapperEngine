@@ -42,7 +42,7 @@ JPH::Ref<JPH::SwingTwistConstraintSettings> MakeJoint(const RagdollPartDesc& par
 }
 
 std::optional<RagdollAsset::Clip> Resolve(const RagdollClip& clip, const RagdollAsset& asset) {
-    RagdollAsset::Clip resolved{ clip.name, clip.duration, clip.loop, std::vector<std::vector<RagdollClip::Key>>(asset.parts.size()) };
+    RagdollAsset::Clip resolved{ clip.name, clip.duration, clip.loop, clip.stride, std::vector<std::vector<RagdollClip::Key>>(asset.parts.size()) };
     for (const RagdollClip::Track& track : clip.tracks) {
         const std::optional<PartId> part = asset.FindPart(track.part);
         if (!part) {
@@ -53,21 +53,37 @@ std::optional<RagdollAsset::Clip> Resolve(const RagdollClip& clip, const Ragdoll
     }
     return resolved;
 }
+
+// Parents come before their children, so one pass carries a root's membership down to its subtree.
+std::optional<RagdollAsset::Mask> Resolve(const RagdollMaskDesc& mask, const RagdollAsset& asset) {
+    RagdollAsset::Mask resolved{ mask.name, std::vector<float>(asset.parts.size(), 0.0f) };
+    for (const std::string& name : mask.roots) {
+        const std::optional<PartId> root = asset.FindPart(name);
+        if (!root) {
+            std::fprintf(stderr, "[Jolt] mask %s: no part named %s\n", mask.name.c_str(), name.c_str());
+            return std::nullopt;
+        }
+        resolved.weightByPart[root->value] = 1.0f;
+    }
+    for (std::size_t i = 0; i < asset.parts.size(); ++i) {
+        const std::optional<PartId> parent = asset.parts[i].parent;
+        if (parent && resolved.weightByPart[parent->value] > 0.0f) resolved.weightByPart[i] = 1.0f;
+    }
+    return resolved;
 }
 
-std::optional<PartId> RagdollAsset::FindPart(std::string_view name) const {
-    for (std::size_t i = 0; i < parts.size(); ++i) {
-        if (parts[i].name == name) return PartId{ static_cast<std::uint16_t>(i) };
+template <typename Id, typename Item>
+std::optional<Id> FindByName(const std::vector<Item>& items, std::string_view name) {
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        if (items[i].name == name) return Id{ static_cast<std::uint16_t>(i) };
     }
     return std::nullopt;
 }
-
-std::optional<ClipId> RagdollAsset::FindClip(std::string_view name) const {
-    for (std::size_t i = 0; i < clips.size(); ++i) {
-        if (clips[i].name == name) return ClipId{ static_cast<std::uint16_t>(i) };
-    }
-    return std::nullopt;
 }
+
+std::optional<PartId> RagdollAsset::FindPart(std::string_view name) const { return FindByName<PartId>(parts, name); }
+std::optional<ClipId> RagdollAsset::FindClip(std::string_view name) const { return FindByName<ClipId>(clips, name); }
+std::optional<MaskId> RagdollAsset::FindMask(std::string_view name) const { return FindByName<MaskId>(masks, name); }
 
 std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, const std::vector<RagdollClip>& clips) {
     auto asset = std::make_shared<RagdollAsset>();
@@ -117,6 +133,11 @@ std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, co
         std::optional<RagdollAsset::Clip> resolved = Resolve(clip, *asset);
         if (!resolved) return nullptr;
         asset->clips.push_back(std::move(*resolved));
+    }
+    for (const RagdollMaskDesc& mask : desc.masks) {
+        std::optional<RagdollAsset::Mask> resolved = Resolve(mask, *asset);
+        if (!resolved) return nullptr;
+        asset->masks.push_back(std::move(*resolved));
     }
     return asset;
 }
