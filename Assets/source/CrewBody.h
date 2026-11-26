@@ -13,6 +13,8 @@
 struct CrewBody {
     std::shared_ptr<const Scrapper::RagdollAsset> asset;
     Scrapper::PartId head;
+    Scrapper::PartId leftArm;
+    Scrapper::PartId rightArm;
     std::vector<Scrapper::PoseLayer> layers;
 };
 

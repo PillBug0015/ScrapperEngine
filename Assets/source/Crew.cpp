@@ -18,7 +18,7 @@ GameObject SpawnCrewMember(World& world, const CrewBody& body, std::uint32_t net
     crew.Add<RagdollPose>(RagdollPose{ body.layers });
     Ragdolls::Add(world.Registry(), crew.Entity(), body.asset);
 
-    CrewHead& head = crew.Add<CrewHead>(CrewHead{ body.head });
+    CrewRig& rig = crew.Add<CrewRig>(CrewRig{ body.head, body.leftArm, body.rightArm });
     const std::vector<entt::entity>& parts = crew.Get<Parts>().entities;
     for (std::size_t i = 0; i < parts.size(); ++i) {
         const RagdollAsset::Part& rest = body.asset->parts[i];
@@ -26,7 +26,7 @@ GameObject SpawnCrewMember(World& world, const CrewBody& body, std::uint32_t net
         GameObject mesh = GameObject::Create(world, { 0.0f, 0.0f, 0.0f }, GameObject(world, parts[i]));
         mesh.Add<ModelRenderer>(ModelRenderer{ rest.model, ColliderDisplay::Hidden, {}, isHead ? Skin : color });
         if (!isHead) continue;
-        head.mesh = mesh.Entity();
+        rig.headMesh = mesh.Entity();
 
         // A visor, so others can tell where it looks: forward in character space, turned into the head's frame.
         const Quaternion toHead = QuaternionInvert(rest.rotation);
@@ -38,7 +38,7 @@ GameObject SpawnCrewMember(World& world, const CrewBody& body, std::uint32_t net
 }
 
 void SetHeadVisible(GameObject crew, bool visible) {
-    GameObject(crew.GetWorld(), crew.Get<CrewHead>().mesh).SetActive(visible);
+    GameObject(crew.GetWorld(), crew.Get<CrewRig>().headMesh).SetActive(visible);
 }
 
 void AssignCrew(const CrewList& crew, ConnectionId client) {

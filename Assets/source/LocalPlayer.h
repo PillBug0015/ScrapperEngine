@@ -8,7 +8,7 @@
 // (it simulates that body itself); tank controls go to the server.
 class LocalPlayer : public Scrapper::Script {
 public:
-    LocalPlayer(CrewList crew, Scrapper::GameObject tank) : crew(crew), tank(tank) {}
+    LocalPlayer(CrewList crew, Scrapper::GameObject tank, Scrapper::GameObject camera) : crew(crew), tank(tank), camera(camera) {}
 
     Scrapper::GameObject Body() const { return body; } // invalid until this peer owns a crew member
     float Yaw() const { return yaw; }     // radians around +Y; 0 looks down -Z
@@ -19,6 +19,7 @@ public:
 private:
     CrewList crew;
     Scrapper::GameObject tank;
+    Scrapper::GameObject camera;
     Scrapper::GameObject body;
     float yaw = 0.0f;
     float pitch = 0.0f;

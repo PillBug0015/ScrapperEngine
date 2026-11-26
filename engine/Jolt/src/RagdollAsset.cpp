@@ -110,7 +110,7 @@ std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, co
         body.mMassPropertiesOverride.mMass = part.mass;
         if (parent) body.mToParent = MakeJoint(part, desc);
 
-        asset->parts.push_back({ part.name, parent, part.from, QuaternionIdentity(), MakeShapeModel(*body.GetShape(), part.name) });
+        asset->parts.push_back({ part.name, parent, part.from, QuaternionIdentity(), ToRaylib(Axis(part)), MakeShapeModel(*body.GetShape(), part.name) });
         rest.push_back(JPH::Mat44::sTranslation(ToJolt(part.from)));
     }
 

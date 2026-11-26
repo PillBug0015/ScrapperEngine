@@ -46,7 +46,7 @@ void Drive(JPH::SwingTwistConstraint& joint, Quaternion target, float torque) {
 }
 }
 
-void DrivePose(const RagdollAsset& asset, RagdollInstance& instance, RagdollPose& pose, float deltaTime) {
+void DrivePose(JPH::BodyInterface&, const RagdollAsset& asset, RagdollInstance& instance, RagdollPose& pose, float deltaTime) {
     for (PoseLayer& layer : pose.layers) Advance(layer, deltaTime);
 
     for (std::size_t i = 0; i < asset.parts.size(); ++i) {

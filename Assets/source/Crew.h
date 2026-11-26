@@ -13,10 +13,12 @@ using CrewList = std::array<Scrapper::GameObject, CrewCount>;
 
 inline constexpr Vector3 EyeFromHead = { 0.0f, 0.06f, -0.08f }; // character space, from the neck at rest
 
-// On every crew member: where its head is, for the first-person view.
-struct CrewHead {
-    Scrapper::PartId part;
-    entt::entity mesh = entt::null; // hidden for its own first-person view
+// On every crew member: the parts the game reaches for by name, resolved once.
+struct CrewRig {
+    Scrapper::PartId head;
+    Scrapper::PartId leftArm;
+    Scrapper::PartId rightArm;
+    entt::entity headMesh = entt::null; // hidden for its own first-person view
 };
 
 // Spring character on the crew's ragdoll.

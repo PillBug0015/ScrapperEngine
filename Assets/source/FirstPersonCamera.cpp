@@ -8,7 +8,7 @@ void FirstPersonCamera::LateUpdate(float) {
     const GameObject body = player.Body();
     if (!body) return;
     const RagdollAsset& asset = *body.Get<Ragdoll>().asset;
-    const PartId head = body.Get<CrewHead>().part;
+    const PartId head = body.Get<CrewRig>().head;
     const RagdollAsset::Part& headRest = asset.At(head);
     const Quaternion pitch = QuaternionFromAxisAngle({ 1.0f, 0.0f, 0.0f }, player.Pitch());
     const Quaternion yaw = QuaternionFromAxisAngle({ 0.0f, 1.0f, 0.0f }, player.Yaw());

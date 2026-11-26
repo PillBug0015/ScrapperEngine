@@ -91,10 +91,12 @@ std::optional<CrewBody> MakeCrewBody() {
     if (asset == nullptr) return std::nullopt;
 
     const std::optional<PartId> head = asset->FindPart(Part::Head);
+    const std::optional<PartId> leftArm = asset->FindPart(Part::ArmL);
+    const std::optional<PartId> rightArm = asset->FindPart(Part::ArmR);
     std::optional<std::vector<PoseLayer>> layers = ResolveLayers(*asset, Layers());
-    if (!head || !layers) {
+    if (!head || !leftArm || !rightArm || !layers) {
         std::fprintf(stderr, "[Game] crew body is missing a part or layer the game uses\n");
         return std::nullopt;
     }
-    return CrewBody{ std::move(asset), *head, std::move(*layers) };
+    return CrewBody{ std::move(asset), *head, *leftArm, *rightArm, std::move(*layers) };
 }

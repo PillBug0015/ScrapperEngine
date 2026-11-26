@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     camera.Add<CameraView3D>(CameraView3D{ 75.0f });
     camera.LookAt({ 0.0f, 1.0f, 0.0f });
 
-    const LocalPlayer& player = GameObject::CreateEmpty(world).AddScript<LocalPlayer>(scene->crew, scene->tank);
+    const LocalPlayer& player = GameObject::CreateEmpty(world).AddScript<LocalPlayer>(scene->crew, scene->tank, camera);
     camera.AddScript<FirstPersonCamera>(player);
     Hud::Create(world, player);
 

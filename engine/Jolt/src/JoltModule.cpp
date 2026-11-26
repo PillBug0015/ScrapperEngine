@@ -119,9 +119,10 @@ void StepCharacters(entt::registry& registry, JoltWorld& jolt, const CharacterSp
     }
 }
 
-void DrivePoses(entt::registry& registry) {
+void DrivePoses(entt::registry& registry, JoltWorld& jolt) {
     for (auto [e, ragdoll, instance, pose] : registry.view<Ragdoll, RagdollInstance, RagdollPose>().each()) {
-        if (RagdollBodies::IsSimulatedHere(registry, e, instance)) DrivePose(*ragdoll.asset, instance, pose, JoltWorld::FixedDeltaTime);
+        if (!RagdollBodies::IsSimulatedHere(registry, e, instance)) continue;
+        DrivePose(jolt.Bodies(), *ragdoll.asset, instance, pose, JoltWorld::FixedDeltaTime);
     }
 }
 
@@ -158,7 +159,7 @@ void Simulate(World& world, float deltaTime) {
         }
         RagdollBodies::ApplyCommands(registry, jolt, step == 0); // impulses once per frame, forces every step
         StepCharacters(registry, jolt, world.Resource<CharacterSpringScale>());
-        DrivePoses(registry);
+        DrivePoses(registry, jolt);
 
         jolt.Update(JoltWorld::FixedDeltaTime);
         jolt.accumulator -= JoltWorld::FixedDeltaTime;
