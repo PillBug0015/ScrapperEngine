@@ -43,8 +43,8 @@ std::optional<Scene> Scene::Build(World& world) {
     out.tank = SpawnTank(world, model, tankPosition);
     out.tank.Add<NetId>(1u);
 
-    const std::shared_ptr<const RagdollAsset> body = MakeCrewBody();
-    if (body == nullptr) return std::nullopt;
+    const std::optional<CrewBody> body = MakeCrewBody();
+    if (!body) return std::nullopt;
 
     // Three crew start at the tank's stations, the fourth outside by the step.
     const auto station = [&](const char* name) {
@@ -52,10 +52,10 @@ std::optional<Scene> Scene::Build(World& world) {
         return Vector3Add(tankPosition, marker != nullptr ? marker->position : Vector3{ 0.0f, 1.0f, 0.0f });
     };
     out.crew = {
-        SpawnCrewMember(world, body, 10, station("STATION_Driver"), Color{ 200, 60, 60, 255 }),
-        SpawnCrewMember(world, body, 11, station("STATION_Gunner"), Color{ 60, 110, 210, 255 }),
-        SpawnCrewMember(world, body, 12, station("STATION_Engine"), Color{ 230, 190, 50, 255 }),
-        SpawnCrewMember(world, body, 13, Vector3Add(tankPosition, { -3.2f, 0.0f, 0.0f }), Color{ 70, 170, 90, 255 }),
+        SpawnCrewMember(world, *body, 10, station("STATION_Driver"), Color{ 200, 60, 60, 255 }),
+        SpawnCrewMember(world, *body, 11, station("STATION_Gunner"), Color{ 60, 110, 210, 255 }),
+        SpawnCrewMember(world, *body, 12, station("STATION_Engine"), Color{ 230, 190, 50, 255 }),
+        SpawnCrewMember(world, *body, 13, Vector3Add(tankPosition, { -3.2f, 0.0f, 0.0f }), Color{ 70, 170, 90, 255 }),
     };
     return out;
 }

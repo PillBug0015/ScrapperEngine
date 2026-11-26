@@ -41,29 +41,32 @@ JPH::Ref<JPH::SwingTwistConstraintSettings> MakeJoint(const RagdollPartDesc& par
     return joint;
 }
 
-RagdollAsset::Clip Resolve(const RagdollClip& clip, const RagdollAsset& asset) {
+std::optional<RagdollAsset::Clip> Resolve(const RagdollClip& clip, const RagdollAsset& asset) {
     RagdollAsset::Clip resolved{ clip.name, clip.duration, clip.loop, std::vector<std::vector<RagdollClip::Key>>(asset.parts.size()) };
     for (const RagdollClip::Track& track : clip.tracks) {
-        const int part = asset.FindPart(track.part);
-        if (part >= 0) resolved.keysByPart[part] = track.keys;
-        else std::fprintf(stderr, "[Jolt] clip %s: no part named %s\n", clip.name.c_str(), track.part.c_str());
+        const std::optional<PartId> part = asset.FindPart(track.part);
+        if (!part) {
+            std::fprintf(stderr, "[Jolt] clip %s: no part named %s\n", clip.name.c_str(), track.part.c_str());
+            return std::nullopt;
+        }
+        resolved.keysByPart[part->value] = track.keys;
     }
     return resolved;
 }
 }
 
-int RagdollAsset::FindPart(const std::string& name) const {
+std::optional<PartId> RagdollAsset::FindPart(std::string_view name) const {
     for (std::size_t i = 0; i < parts.size(); ++i) {
-        if (parts[i].name == name) return static_cast<int>(i);
+        if (parts[i].name == name) return PartId{ static_cast<std::uint16_t>(i) };
     }
-    return -1;
+    return std::nullopt;
 }
 
-const RagdollAsset::Clip* RagdollAsset::FindClip(const std::string& name) const {
-    for (const Clip& clip : clips) {
-        if (clip.name == name) return &clip;
+std::optional<ClipId> RagdollAsset::FindClip(std::string_view name) const {
+    for (std::size_t i = 0; i < clips.size(); ++i) {
+        if (clips[i].name == name) return ClipId{ static_cast<std::uint16_t>(i) };
     }
-    return nullptr;
+    return std::nullopt;
 }
 
 std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, const std::vector<RagdollClip>& clips) {
@@ -74,13 +77,13 @@ std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, co
 
     std::vector<JPH::Mat44> rest;
     for (const RagdollPartDesc& part : desc.parts) {
-        const int parent = part.parent.empty() ? -1 : asset->FindPart(part.parent);
-        if ((parent < 0) != part.parent.empty() || (parent < 0) != asset->parts.empty()) {
+        const std::optional<PartId> parent = part.parent.empty() ? std::nullopt : asset->FindPart(part.parent);
+        if (parent.has_value() == part.parent.empty() || parent.has_value() == asset->parts.empty()) {
             std::fprintf(stderr, "[Jolt] ragdoll part %s: one root first, then parents before their children\n", part.name.c_str());
             return nullptr;
         }
 
-        asset->settings->mSkeleton->AddJoint(part.name, parent);
+        asset->settings->mSkeleton->AddJoint(part.name, parent ? parent->value : -1);
         JPH::RagdollSettings::Part& body = asset->settings->mParts.emplace_back();
         body.SetShape(MakeShape(part));
         body.mPosition = ToJoltR(part.from);
@@ -89,7 +92,7 @@ std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, co
         body.mAllowSleeping = false; // characters push their parts every step
         body.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
         body.mMassPropertiesOverride.mMass = part.mass;
-        if (parent >= 0) body.mToParent = MakeJoint(part, desc);
+        if (parent) body.mToParent = MakeJoint(part, desc);
 
         asset->parts.push_back({ part.name, parent, part.from, QuaternionIdentity(), MakeShapeModel(*body.GetShape(), part.name) });
         rest.push_back(JPH::Mat44::sTranslation(ToJolt(part.from)));
@@ -110,7 +113,11 @@ std::shared_ptr<const RagdollAsset> MakeRagdollAsset(const RagdollDesc& desc, co
     }
     for (RagdollAsset::Part& part : asset->parts) part.position.y -= lowest;
 
-    for (const RagdollClip& clip : clips) asset->clips.push_back(Resolve(clip, *asset));
+    for (const RagdollClip& clip : clips) {
+        std::optional<RagdollAsset::Clip> resolved = Resolve(clip, *asset);
+        if (!resolved) return nullptr;
+        asset->clips.push_back(std::move(*resolved));
+    }
     return asset;
 }
 

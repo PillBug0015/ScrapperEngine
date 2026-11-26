@@ -7,27 +7,28 @@
 
 using namespace Scrapper;
 
-namespace {
-constexpr const char* HeadMesh = "HeadMesh";
-}
 
 
-GameObject SpawnCrewMember(World& world, const std::shared_ptr<const RagdollAsset>& body, std::uint32_t netId, Vector3 feet, Color color) {
+GameObject SpawnCrewMember(World& world, const CrewBody& body, std::uint32_t netId, Vector3 feet, Color color) {
     constexpr Color Skin = { 240, 205, 170, 255 };
 
     GameObject crew = GameObject::Create(world, feet);
     crew.Add<NetId>(netId);
-    crew.Add<SpringCharacter>();
-    Ragdolls::Add(world.Registry(), crew.Entity(), body);
+    SpringCharacter& character = crew.Add<SpringCharacter>();
+    character.idleClip = body.idle;
+    character.walkClip = body.walk;
+    character.airClip = body.air;
+    Ragdolls::Add(world.Registry(), crew.Entity(), body.asset);
 
+    CrewHead& head = crew.Add<CrewHead>(CrewHead{ body.head });
     const std::vector<entt::entity>& parts = crew.Get<Parts>().entities;
     for (std::size_t i = 0; i < parts.size(); ++i) {
-        const RagdollAsset::Part& rest = body->parts[i];
-        const bool isHead = rest.name == HeadJoint;
+        const RagdollAsset::Part& rest = body.asset->parts[i];
+        const bool isHead = i == body.head.value;
         GameObject mesh = GameObject::Create(world, { 0.0f, 0.0f, 0.0f }, GameObject(world, parts[i]));
         mesh.Add<ModelRenderer>(ModelRenderer{ rest.model, ColliderDisplay::Hidden, {}, isHead ? Skin : color });
         if (!isHead) continue;
-        mesh.SetName(HeadMesh);
+        head.mesh = mesh.Entity();
 
         // A visor, so others can tell where it looks: forward in character space, turned into the head's frame.
         const Quaternion toHead = QuaternionInvert(rest.rotation);
@@ -39,9 +40,7 @@ GameObject SpawnCrewMember(World& world, const std::shared_ptr<const RagdollAsse
 }
 
 void SetHeadVisible(GameObject crew, bool visible) {
-    for (entt::entity part : crew.Get<Parts>().entities) {
-        if (GameObject mesh = GameObject(crew.GetWorld(), part).FindChild(HeadMesh)) mesh.SetActive(visible);
-    }
+    GameObject(crew.GetWorld(), crew.Get<CrewHead>().mesh).SetActive(visible);
 }
 
 void AssignCrew(const CrewList& crew, ConnectionId client) {

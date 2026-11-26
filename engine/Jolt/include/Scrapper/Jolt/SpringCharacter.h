@@ -2,8 +2,9 @@
 
 #include "Scrapper/Core/Math.h"
 #include "Scrapper/Jolt/PhysicsBody.h"
+#include "Scrapper/Jolt/Ragdoll.h"
 
-#include <string>
+#include <optional>
 #include <vector>
 
 
@@ -32,11 +33,11 @@ struct CharacterSpringScale {
 // up and upright, and the joint motors chase clip poses. Stability (0..1) scales all of it together:
 // 1 stands firm, lower wobbles, 0 is limp. The leg pushes back on what it stands on.
 struct SpringCharacter {
-    std::string coreJoint;     // the part the springs hold; empty: the root part
-    std::string idleClip = "idle"; // clips of the ragdoll asset
-    std::string walkClip = "walk";
-    std::string airClip = "air";
-    float walkClipSpeed = 1.5f; // m/s at which one walk loop takes the clip's duration
+    PartId core = RagdollAsset::Root; // the part the springs hold
+    std::optional<ClipId> idleClip;   // clips of the ragdoll asset
+    std::optional<ClipId> walkClip;
+    std::optional<ClipId> airClip;
+    float walkClipSpeed = 1.5f;       // m/s at which one walk loop takes the clip's duration
 
     float moveSpeed = 3.0f;
     float jumpSpeed = 5.0f;
@@ -56,8 +57,6 @@ struct SpringCharacter {
     float stability = 1.0f; // the lowest active stun
     bool grounded = false;
     float jumpTimer = 0.0f;
-    int core = -1;             // part index of coreJoint
-    float centerHeight = 0.0f; // core's center of mass above the feet when standing
     float clock = 0.0f;        // idle and air clips
     float walkPhase = 0.0f;    // walk clip, advanced by speed
     float airBlend = 0.0f;     // eases towards 1 off the ground

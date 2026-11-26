@@ -91,8 +91,8 @@ private:
 };
 
 // A small sphere instead of a ray, so the leg doesn't slip through gaps at edges. Ignores the own limbs.
-GroundProbe ProbeGround(JoltWorld& jolt, const JPH::Ragdoll& ragdoll, const SpringCharacter& character, JPH::RVec3Arg centerOfMass) {
-    const float castLength = character.centerHeight + LegReach - ProbeRadius;
+GroundProbe ProbeGround(JoltWorld& jolt, const JPH::Ragdoll& ragdoll, float centerHeight, JPH::RVec3Arg centerOfMass) {
+    const float castLength = centerHeight + LegReach - ProbeRadius;
 
     JPH::SphereShape probe(ProbeRadius);
     probe.SetEmbedded();
@@ -112,23 +112,20 @@ GroundProbe ProbeGround(JoltWorld& jolt, const JPH::Ragdoll& ragdoll, const Spri
     return ground;
 }
 
-// Which part the springs hold, and how high its center of mass rides when standing at rest.
-bool Rig(SpringCharacter& c, const RagdollAsset& asset) {
-    c.core = c.coreJoint.empty() ? 0 : asset.FindPart(c.coreJoint);
-    if (c.core < 0) return false;
-    const RagdollAsset::Part& rest = asset.parts[c.core];
-    const JPH::Vec3 centerOfMass = ToJolt(rest.rotation) * asset.settings->mParts[c.core].GetShape()->GetCenterOfMass();
-    c.centerHeight = rest.position.y + centerOfMass.GetY() + c.hover;
-    return true;
+// How high the core's center of mass rides when standing: as at rest, plus the hover.
+float CenterHeight(const RagdollAsset& asset, PartId core, float hover) {
+    const RagdollAsset::Part& rest = asset.At(core);
+    const JPH::Vec3 centerOfMass = ToJolt(rest.rotation) * asset.settings->mParts[core.value].GetShape()->GetCenterOfMass();
+    return rest.position.y + centerOfMass.GetY() + hover;
 }
 
 // Idle, blended into walk by speed and into air off the ground; the motors chase it as hard as stability allows.
 void DrivePose(const RagdollAsset& asset, RagdollInstance& instance, SpringCharacter& c, float speed, float stability, float deltaTime) {
     constexpr float AirBlendRate = 6.0f; // per second
 
-    const RagdollAsset::Clip* idle = asset.FindClip(c.idleClip);
-    const RagdollAsset::Clip* walk = asset.FindClip(c.walkClip);
-    const RagdollAsset::Clip* air = asset.FindClip(c.airClip);
+    const RagdollAsset::Clip* idle = c.idleClip ? &asset.At(*c.idleClip) : nullptr;
+    const RagdollAsset::Clip* walk = c.walkClip ? &asset.At(*c.walkClip) : nullptr;
+    const RagdollAsset::Clip* air = c.airClip ? &asset.At(*c.airClip) : nullptr;
     const float walkBlend = walk != nullptr && c.walkClipSpeed > 0.0f ? Clamp(speed / c.walkClipSpeed, 0.0f, 1.0f) : 0.0f;
     c.clock += deltaTime;
     if (walkBlend > 0.0f) c.walkPhase += deltaTime * speed / c.walkClipSpeed; // stride follows the ground speed
@@ -139,7 +136,7 @@ void DrivePose(const RagdollAsset& asset, RagdollInstance& instance, SpringChara
         JPH::TwoBodyConstraint* constraint = index >= 0 ? instance.ragdoll->GetConstraint(index) : nullptr;
         if (constraint == nullptr || constraint->GetSubType() != JPH::EConstraintSubType::SwingTwist) continue;
 
-        const int part = static_cast<int>(i);
+        const PartId part{ static_cast<std::uint16_t>(i) };
         Quaternion target = idle != nullptr ? idle->Sample(part, c.clock) : QuaternionIdentity();
         if (walkBlend > 0.0f) target = QuaternionSlerp(target, walk->Sample(part, c.walkPhase), walkBlend);
         if (c.airBlend > 0.0f) target = QuaternionSlerp(target, air->Sample(part, c.clock), c.airBlend);
@@ -156,12 +153,12 @@ void DrivePose(const RagdollAsset& asset, RagdollInstance& instance, SpringChara
 
 void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const RagdollAsset& asset, RagdollInstance& instance,
                    SpringCharacter& c, StandingOn& standingOn, float deltaTime) {
-    if (c.core < 0 && !Rig(c, asset)) return;
     c.jumpTimer = std::max(0.0f, c.jumpTimer - deltaTime);
     const float stability = c.stability = UpdateStability(c, deltaTime);
 
     JPH::BodyInterface& bodies = jolt.Bodies();
-    const JPH::BodyID core = instance.ragdoll->GetBodyID(c.core);
+    const JPH::BodyID core = instance.ragdoll->GetBodyID(c.core.value);
+    const float centerHeight = CenterHeight(asset, c.core, c.hover);
     const JPH::Vec3 up = JPH::Vec3::sAxisY();
     const float gravity = -jolt.System().GetGravity().GetY();
 
@@ -169,7 +166,7 @@ void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const Rag
     const JPH::Vec3 angularVelocity = bodies.GetAngularVelocity(core);
     const JPH::Quat rotation = bodies.GetRotation(core);
 
-    const GroundProbe ground = ProbeGround(jolt, *instance.ragdoll, c, bodies.GetCenterOfMassPosition(core));
+    const GroundProbe ground = ProbeGround(jolt, *instance.ragdoll, centerHeight, bodies.GetCenterOfMassPosition(core));
     c.grounded = ground.hit && c.jumpTimer <= 0.0f;
     if (c.grounded) {
         // Kept while airborne: a jump inside a moving tank still belongs to the tank.
@@ -183,7 +180,7 @@ void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const Rag
     // 1. Leg: hold the core at standing height, carrying gravity while grounded.
     //    Weakened by stability, so a stunned character's knees give way.
     if (c.grounded) {
-        const float offset = c.centerHeight - ground.distance;
+        const float offset = centerHeight - ground.distance;
         const float relativeVelocity = (velocity - ground.velocity).Dot(up);
         const float acceleration = stability * std::clamp(SpringAcceleration(c.leg, scale, offset, relativeVelocity, deltaTime) + gravity,
                                                           -MaxLegPull, gravity + MaxLegPush);
@@ -217,7 +214,7 @@ void StepCharacter(JoltWorld& jolt, const CharacterSpringScale& scale, const Rag
 
     // 3. Upright: one spring on all three axes towards the core's rest orientation, turned to facingYaw.
     //    It turns the whole body around its center of mass: on the core alone the limbs would outweigh it.
-    JPH::Quat error = JPH::Quat::sRotation(up, c.facingYaw) * ToJolt(asset.parts[c.core].rotation) * rotation.Conjugated();
+    JPH::Quat error = JPH::Quat::sRotation(up, c.facingYaw) * ToJolt(asset.At(c.core).rotation) * rotation.Conjugated();
     if (error.GetW() < 0.0f) error = -error; // shortest way round
 
     JPH::Vec3 axis;

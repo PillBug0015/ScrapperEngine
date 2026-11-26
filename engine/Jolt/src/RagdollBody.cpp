@@ -28,6 +28,10 @@ void Ragdolls::Add(entt::registry& registry, entt::entity entity, std::shared_pt
     registry.emplace_or_replace<Ragdoll>(entity, std::move(asset));
 }
 
+entt::entity Ragdolls::PartEntity(const entt::registry& registry, entt::entity entity, PartId part) {
+    return registry.get<Parts>(entity).entities[part.value]; // Add creates them in PartId order
+}
+
 namespace RagdollBodies {
 namespace {
 void SetInWorld(entt::registry& registry, entt::entity entity, RagdollInstance& instance, bool inWorld) {

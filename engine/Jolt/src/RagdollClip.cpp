@@ -4,8 +4,8 @@
 
 
 namespace Scrapper {
-Quaternion RagdollAsset::Clip::Sample(int part, float time) const {
-    const std::vector<RagdollClip::Key>& keys = keysByPart[part];
+Quaternion RagdollAsset::Clip::Sample(PartId part, float time) const {
+    const std::vector<RagdollClip::Key>& keys = keysByPart[part.value];
     if (keys.empty()) return QuaternionIdentity();
 
     time = loop && duration > 0.0f ? std::fmod(time, duration) : Clamp(time, 0.0f, duration);
