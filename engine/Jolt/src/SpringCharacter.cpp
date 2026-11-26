@@ -1,5 +1,6 @@
 #include "CharacterStep.h"
 #include "BodyEntity.h"
+#include "BodyFilters.h"
 #include "Scrapper/Jolt/JoltConversion.h"
 
 #include <Jolt/Physics/Body/Body.h>
@@ -79,15 +80,6 @@ JPH::Vec3 MoveTowards(JPH::Vec3Arg current, JPH::Vec3Arg target, float maxDelta)
     const float length = delta.Length();
     return length <= maxDelta || length < 1e-6f ? target : current + delta * (maxDelta / length);
 }
-
-class IgnoreBodies final : public JPH::BodyFilter {
-public:
-    explicit IgnoreBodies(const JPH::Array<JPH::BodyID>& ids) : ids(ids) {}
-    bool ShouldCollide(const JPH::BodyID& id) const override { return std::find(ids.begin(), ids.end(), id) == ids.end(); }
-
-private:
-    const JPH::Array<JPH::BodyID>& ids;
-};
 
 // A small sphere instead of a ray, so the leg doesn't slip through gaps at edges. Ignores the own limbs.
 GroundProbe ProbeGround(JoltWorld& jolt, const JPH::Ragdoll& ragdoll, float centerHeight, JPH::RVec3Arg centerOfMass) {

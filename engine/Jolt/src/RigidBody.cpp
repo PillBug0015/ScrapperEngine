@@ -10,9 +10,14 @@
 
 
 namespace Scrapper {
-RigidBody RigidBody::Make(JPH::RefConst<JPH::Shape> shape, JPH::EMotionType motion) {
-    return { JPH::BodyCreationSettings(shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(), motion,
-                                       motion == JPH::EMotionType::Static ? PhysicsLayers::Static : PhysicsLayers::Moving) };
+RigidBody RigidBody::Make(JPH::RefConst<JPH::Shape> shape, JPH::EMotionType motion, float mass) {
+    RigidBody body{ JPH::BodyCreationSettings(shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(), motion,
+                                              motion == JPH::EMotionType::Static ? PhysicsLayers::Static : PhysicsLayers::Moving) };
+    if (mass > 0.0f) {
+        body.settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+        body.settings.mMassPropertiesOverride.mMass = mass;
+    }
+    return body;
 }
 
 RigidBody RigidBody::FromConvexParts(const std::vector<ConvexPart>& parts, JPH::EMotionType motion, float mass) {
@@ -29,12 +34,7 @@ RigidBody RigidBody::FromConvexParts(const std::vector<ConvexPart>& parts, JPH::
         return Make(new JPH::BoxShape(JPH::Vec3::sReplicate(0.5f)), motion);
     }
 
-    RigidBody body = Make(result.Get(), motion);
-    if (mass > 0.0f) {
-        body.settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
-        body.settings.mMassPropertiesOverride.mMass = mass;
-    }
-    return body;
+    return Make(result.Get(), motion, mass);
 }
 
 }

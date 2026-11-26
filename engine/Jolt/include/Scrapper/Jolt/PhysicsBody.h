@@ -18,8 +18,8 @@ namespace Scrapper {
 struct RigidBody {
     JPH::BodyCreationSettings settings;
 
-    // Common case: object layer follows the motion type.
-    static RigidBody Make(JPH::RefConst<JPH::Shape> shape, JPH::EMotionType motion);
+    // Common case: object layer follows the motion type. mass 0 keeps the shape's density.
+    static RigidBody Make(JPH::RefConst<JPH::Shape> shape, JPH::EMotionType motion, float mass = 0.0f);
     // One compound of convex hulls, e.g. a model's COL_ pieces. mass 0 keeps the shapes' density.
     static RigidBody FromConvexParts(const std::vector<ConvexPart>& parts, JPH::EMotionType motion, float mass = 0.0f);
 };

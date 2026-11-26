@@ -9,6 +9,7 @@
 #include "Scrapper/Core/World.h"
 #include "BodyEntity.h"
 #include "CharacterStep.h"
+#include "GripJoints.h"
 #include "PoseDrive.h"
 #include "RagdollBody.h"
 
@@ -134,6 +135,7 @@ void Simulate(World& world, float deltaTime) {
     CreatePendingBodies(registry, jolt);
     ReconcileBodies(registry, jolt);
     TeleportMovedBodies(registry, jolt);
+    GripJoints::Sync(registry, jolt);
 
     for (auto [e, body, commands] : registry.view<PhysicsBody, PhysicsCommands>().each()) {
         if (!IsSimulated(body)) continue;
@@ -199,16 +201,19 @@ void JoltModule::Install(World& world) {
     world.AddResource<CharacterSpringScale>();
     world.Registry().on_destroy<PhysicsBody>().connect<&OnBodyDestroyed>();
     world.Registry().on_destroy<RagdollInstance>().connect<&RagdollBodies::OnDestroyed>();
+    world.Registry().on_destroy<GripJoint>().connect<&GripJoints::OnDestroyed>();
     world.GetPipeline().Add(JoltSystem::Simulate, &Simulate, Placement::InPhase(Phase::Simulate));
 }
 
 void JoltModule::Uninstall(World& world) {
     world.GetPipeline().Remove(JoltSystem::Simulate);
-    // Every Jolt body goes while the physics system still exists.
+    // Every joint and body goes while the physics system still exists.
+    world.Registry().clear<GripJoint>();
     world.Registry().clear<PhysicsBody>();
     world.Registry().clear<RagdollInstance>();
     world.Registry().on_destroy<PhysicsBody>().disconnect<&OnBodyDestroyed>();
     world.Registry().on_destroy<RagdollInstance>().disconnect<&RagdollBodies::OnDestroyed>();
+    world.Registry().on_destroy<GripJoint>().disconnect<&GripJoints::OnDestroyed>();
     world.RemoveResource<CharacterSpringScale>();
     world.RemoveResource<JoltWorld>();
 }
